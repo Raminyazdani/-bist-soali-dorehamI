@@ -28,4 +28,18 @@ Later documentation-only commits preserve this tested runtime.
 
 ## Photo picker regression fix
 
-The previous immediate-upload test missed an open native picker outliving an autosave/heartbeat rerender. A new two-player regression test failed on the old code (no author preview after selection) and passes locally on the fixed code. It verifies photo upload from both players, images on the other player's overhead card and referee screen, recipient reload, and both photos in the final deck. Core tests: 19 passed. Build: passed. Final hosted photo regression check pending.
+The previous immediate-upload test missed an open native picker outliving an autosave/heartbeat rerender. A new two-player regression test failed on the old code (no author preview after selection) and passes locally on the fixed code. It verifies photo upload from both players, images on the other player's overhead card and referee screen, recipient reload, and both photos in the final deck. Core tests: 19 passed. Build: passed. Final hosted photo regression check: PASSED on the stable game URL.
+
+Verified at 2026-10-10T21:00:37.557659+00:00.
+Runtime source: 20a83aecf6e2decc271bb95c64c0633a0aa887d1.
+Production deployment: dpl_9mixoHwyjQevRjXKkHaYuDzVtsmD, READY.
+Command: `E2E_URL=https://rooye-pishooni.vercel.app node test/photo-e2e.mjs`.
+
+- creator photo selection survives autosave/heartbeat while native picker is open
+- guest photo selection survives autosave/heartbeat while native picker is open
+- recipient reload retrieves the current photo again
+- turn 1: other author's photo rendered on recipient and referee, including landscape view
+- turn 2: other author's photo rendered on recipient and referee, including landscape view
+- both photos remain on completed cards and scoreboard for both players
+
+Zero uncaught browser errors. No horizontal overflow. No physical phones were used by this test. Later documentation-only commits preserve the verified runtime.
