@@ -1,7 +1,7 @@
 FOREHEAD / روی پیشونی — implementation plan, 2026-10-10
 
 Goal: a complete Persian mobile party game usable today, deployed to the user's
-new Vercel project bist-soali-dorehami. No signup UI, no laptop while playing.
+linked Vercel project rooye-pishooni. No signup UI, no laptop while playing.
 Vercel static hosting + public PeerJS signaling + encrypted WebRTC. The creator
 phone is authoritative and persists rooms/photos in IndexedDB. No extra account
 or service key. Creator page must remain open; shared Wi-Fi recommended.
@@ -32,7 +32,7 @@ Architecture
 
 Work
 1. Prove real public signaling + large encrypted native data transfer (done).
-2. Reuse tested rules, implement peer authority, persistence and mobile UI (in progress).
+2. Reuse tested rules, implement peer authority, persistence and mobile UI (done).
 3. Test complete 4-player mobile flow, 12 turns, photos, concurrent ready, reconnect,
    creator recovery, scoreboard and replay with the actual public transport.
 4. Deploy on Vercel; verify hosted URL with multiple clients.
@@ -40,3 +40,7 @@ Work
 
 Explicit exclusions: email login, payments, AI card generation, analytics,
 marketing pages, leaderboards across rooms, database accounts and CI pipeline.
+
+Release checkpoint: real hosted four-player/12-turn test passed. Expanded local
+photo, creator recovery, leave/recreate and final build passed. Finish final
+GitHub sync, deploy lifecycle fixes, verify hosted release, then deliver URL.

@@ -12,13 +12,17 @@ class PhoneStore {
   constructor(transport){this.transport=transport;this.row=null;this.people={};}
   async restore(id){
     if(this.row?.id===id)return;
+    this.row=null;
     const row=await readRecord('rooms',id);
     if(!row)return;
     if(row.state.expiresAt<=Date.now())throw new GameError('این لابی بسته شده است؛ یک لابی تازه بساز.',410,'EXPIRED');
     this.row=row;this.people={...(row.people??{})};
-    if(row.state.turn?.status==='running'){
+  }
+  async pauseRestored(){
+    const row=this.row;
+    if(row?.state.turn?.status==='running'){
       let ended=Date.now();
-      try{ended=Math.min(ended,Number(localStorage.getItem('forehead-hidden-'+id))||ended);}catch{}
+      try{ended=Math.min(ended,Number(localStorage.getItem('forehead-hidden-'+row.id))||ended);}catch{}
       const paused=applyAction(row.state,row.state.hostId,'pause',{}, {now:Math.max(row.savedAt??0,ended)});
       if(paused.changed){paused.room.turn.pauseReason='connection';this.row={...row,state:paused.room,revision:row.revision+1};await this.persist();}
     }
@@ -61,7 +65,7 @@ export class PeerTransport {
     const peer=new Peer(id,{debug:0});this.peer=peer;this.closed=false;
     peer.on('connection',c=>this.receiveConnection(c));
     peer.on('disconnected',()=>{if(!this.closed)setTimeout(()=>{if(peer.disconnected&&!peer.destroyed)peer.reconnect();},1200);});
-    peer.on('close',()=>this.status(false));
+    peer.on('close',()=>{if(this.peer===peer)this.status(false);});
     // Keep a listener after initial connection; PeerJS emits transport errors here.
     peer.on('error',()=>{});
     await new Promise((resolve,reject)=>{
@@ -80,7 +84,7 @@ export class PeerTransport {
   async initializeCreator(body){
     this.creator=true;this.identity={roomId:body.roomId,playerId:body.playerId,token:body.token,code:body.code,creator:true};
     await this.phone.restore(body.roomId);
-    if(this.phone.row){authenticate(this.phone.row.state,body.playerId,body.token);if(this.phone.row.creatorId!==body.playerId)throw new GameError('سازندهٔ لابی باید این صفحه را باز کند.',401,'UNAUTHORIZED');await this.openHost(this.phone.row.state.code);}
+    if(this.phone.row){authenticate(this.phone.row.state,body.playerId,body.token);if(this.phone.row.creatorId!==body.playerId)throw new GameError('سازندهٔ لابی باید این صفحه را باز کند.',401,'UNAUTHORIZED');await this.openHost(this.phone.row.state.code);await this.phone.pauseRestored();}
   }
   async clientConnection(code){
     code=normalizeDigits(code).replace(/\s/g,'');
@@ -202,7 +206,7 @@ export class PeerTransport {
     return result;
   }
   suspend(){
-    if(!this.creator||!this.phone.row)return;
+    if(!this.creator||!this.online||!this.phone.row)return;
     const row=this.phone.row;
     try{localStorage.setItem('forehead-hidden-'+row.id,String(Date.now()));}catch{}
     if(row.state.turn?.status==='running')this.serial(async()=>{

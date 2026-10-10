@@ -1,30 +1,27 @@
 # Resume checkpoint — 2026-10-10
 
-User goal: a working Persian mobile multiplayer party game today. User chose Vercel, no laptop server, minimal dependencies, and delegated implementation, setup, tests and deployment. User created this exact repository: https://github.com/Raminyazdani/-bist-soali-dorehamI.git. Connector confirms repository id 1413603466, default branch master, write/admin permissions, initially empty. Use this repository, not the earlier suggested name. No extra approval needed for ordinary code sync and deploying this game.
+Playable game: https://rooye-pishooni.vercel.app/
+Repository: https://github.com/Raminyazdani/-bist-soali-dorehamI
+Default remote branch: master. User authorized implementation, setup, tests, source sync and deployment. No more account setup is needed. Keep the scope to this friends-only mobile game; no subagents were requested.
 
-## Selected architecture
+## Finished product
 
-Cloud account sign-in from mobile blocked Supabase provisioning. Existing Vercel connector can create projects/deployments but integration, environment metadata and Blob creation returned 403. CLI is not signed in. Do not restart the expired Google authentication loop or retry those same rejected operations.
+Persian mobile UI; six-digit lobby; 2–12 players; 1–20 cards each; text required and optional compressed photo; all-ready phases; random player order and balanced unique dealing with no own cards; 20-question counter; referee controls; undo; pause; stopwatch; score/time ranking; scoreboard with authors; replay; reconnect and creator recovery.
 
-Pivot selected after real PeerJS public cloud signaling and encrypted native WebRTC passed a 500,000-byte round-trip between two isolated Chromium contexts at the HTTPS hosted origin. This is actual public signaling, not a fake transport. Test runner has only loopback interfaces: media permission and Chromium's allow-loopback flag are test environment setup only; the application never requests microphone/camera permission.
+Vercel static hosting + public PeerJS signaling + encrypted native WebRTC. The original creator phone is the authoritative host and stores rooms/photos in IndexedDB. Its page must stay open and screen awake. A manager transfer does not move the physical host. Creator reload pauses/restores the game and guests reconnect with stable credentials. No environment variables, database, service keys, signup or laptop while playing. Shared Wi-Fi is recommended.
 
-Vercel static hosting + PeerJS public signaling + the creator's phone as authoritative peer. Creator keeps page open and screen awake. Durable room state and separate photos stored in IndexedDB. Creator reload pauses and restores; guests reconnect with stable credentials. No account, environment variables or database service needed. Management transfer does not transfer the physical peer host.
+## Verification
 
-## Completed
+19 core/service tests pass and production build passes. Actual public-cloud WebRTC E2E passed with four isolated mobile browser contexts and 12 turns at the hosted URL. It covers a real large photo, no own/duplicate deal, readiness, 20-question failure, undo, pause, guest reload, creator reload/recovery, final scores and replay. No uncaught browser errors or horizontal overflow. The final expanded local run also passed leave/recreate and late-snapshot cleanup. Final release deployment is being checked with the same hosted test; record its result in VERIFICATION.md.
 
-- Full lobby/card/turn/scoring/replay UI and shared rules existed before pivot. Previous implementation passed 20 core/service/SQL tests and a 4-mobile-context full 12-turn local PostgreSQL flow.
-- Portable crypto refactor passed all those 20 tests. Shared rules do not use Node-only APIs now.
-- Peer transport, serialized authoritative requests, filtered projections, photo caching, IndexedDB persistence, creator recovery and UI integration implemented. Build passed. Real public-cloud peer E2E passed with four mobile contexts and 12 turns, photo transfer, readiness, undo, pause, player reload, scores and replay. An expanded test for creator reload and a larger photo is running next; do not claim the hosted production version playable yet.
-- Vercel project prj_zdRCe1k29DujofXP7T3K11YnZHMO, team team_t1y5QDuakPdppOy5zuZLx66A, name bist-soali-dorehami, URL https://bist-soali-dorehami.vercel.app/.
-- Last production deployment dpl_9qFHbG516aorS6i6ABtNqrU2kYB3 is old Supabase version and not playable (configured:false). Must replace with verified peer version.
-- Source locally committed on main through 5e3f63e; active branch p2p-no-setup carries the pivot. Archive with Git bundle was saved before pivot. Native GitHub tools initialized master and synced the full source through d6386c857b91cfd9c77349ac3bd8056e2873db4e. Local origin is configured and fetch works.
+Test setup only: this runner has loopback interfaces, requiring Chromium allow-loopback and granted media permissions for ICE. The application itself never requests microphone/camera permissions. Test observers make authenticated peer RPCs over the actual network, without reading private host state or mocking signaling.
 
-## Remaining
+## Deployment and persistence
 
-1. Keep syncing tested changes to the provided GitHub repo. It is initialized and source is already persisted.
-2. Unused Supabase setup/dependencies removed; prior implementation remains on local main and in the previously saved Git bundle. Current npm test passes 19 meaningful reducer/service tests.
-3. Real peer browser E2E passed. Expanded creator recovery and large-photo coverage needs to pass. Test observers also use actual authenticated network snapshots; no direct private-host access or mock transport.
-4. Now a remote repository is usable, use create_git_project for a linked project (the existing bare project cannot be reconnected by that tool), deploy and verify actual URL with real multiple clients. No environment setup required.
-5. Sync final tested source/status to GitHub; link Vercel if available without blocking deployment. Deliver playable URL with creator-phone condition.
+Linked Vercel project rooye-pishooni, id prj_5ZbepebkVmFbJdiLzdiWlsArSypK, team team_t1y5QDuakPdppOy5zuZLx66A; connected to the exact repository above, master production branch. Stable public alias is rooye-pishooni.vercel.app. Authentication protection is disabled for this game.
 
-Do not request passwords or OTPs in chat. Do not display secrets. Do not claim tests passed before actual results. No subagents were requested.
+Use native GitHub tree/commit/ref tools to sync when CLI credentials are unavailable. Update master with an expected-head lease, never overwrite another user's changes. Native Vercel Git-source deployments use repository id 1413603466. The obsolete bist-soali-dorehami project is an unconfigured prior architecture and is not the game URL. Do not restart old browser login or service provisioning.
+
+Commands: npm ci; npm test; npm run build; node test/browser-e2e.mjs; E2E_URL=https://rooye-pishooni.vercel.app node test/browser-e2e.mjs.
+
+Future edits: read AGENTS.md and this file, keep changes minimal, verify actual multiplayer flow when transport/shared state changes, and persist source here. No secrets in repository.

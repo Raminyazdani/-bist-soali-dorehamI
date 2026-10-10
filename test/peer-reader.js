@@ -1,5 +1,6 @@
 // Test observer uses the same real, authenticated public peer protocol as the UI.
 // It never accesses the host's private room or replaces the network/backend.
+(()=>{
 let connection=null,peer=null,opening=null;
 const waiting=new Map();
 function closed(){connection=null;for(const item of waiting.values()){clearTimeout(item.timer);item.reject(Error('Reader disconnected'));}waiting.clear();}
@@ -23,3 +24,4 @@ window.readPeerState=async()=>{
   const c=await connect(credentials.code),id=crypto.randomUUID();
   return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{waiting.delete(id);reject(Error('Reader request timeout'));},20000);waiting.set(id,{resolve,reject,timer});c.send({kind:'request',id,body:{type:'state',...credentials}});});
 };
+})();

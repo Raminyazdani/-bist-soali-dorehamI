@@ -45,6 +45,7 @@ function saveDrafts() {
   storeValue(`forehead-drafts-${state.id}-${state.generation}`, Object.fromEntries(draftMap));
 }
 function accept(next) {
+  if(!session||next.id!==session.roomId||next.you!==session.playerId)return;
   if (state && next.id === state.id && next.revision < state.revision) return;
   if (!state || state.generation !== next.generation || state.id !== next.id) {
     draftMap = new Map(Object.entries(readStored(`forehead-drafts-${next.id}-${next.generation}`) ?? {}));

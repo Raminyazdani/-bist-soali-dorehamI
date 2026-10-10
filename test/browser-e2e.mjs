@@ -21,8 +21,14 @@ const readerSource=await readFile(new URL('peer-reader.js',import.meta.url),'utf
 const pages=[],contexts=[],errors=[],checks=[];
 const output=new URL('../test-output/',import.meta.url);await mkdir(output,{recursive:true});
 const names=['رامین','مهسا','میلاد','امین'];
+const readerInitialization=new WeakMap();
 const read=async page=>{
-  if(!await page.evaluate(()=>typeof window.readPeerState==='function')){await page.addScriptTag({content:peerLibrary});await page.addScriptTag({content:readerSource});}
+  let initialization=readerInitialization.get(page);
+  if(!initialization){
+    initialization=(async()=>{if(!await page.evaluate(()=>typeof window.readPeerState==='function')){await page.addScriptTag({content:peerLibrary});await page.addScriptTag({content:readerSource});}})();
+    readerInitialization.set(page,initialization);
+  }
+  try{await initialization;}finally{if(readerInitialization.get(page)===initialization)readerInitialization.delete(page);}
   return page.evaluate(()=>window.readPeerState());
 };
 const refresh=async page=>{
@@ -32,7 +38,7 @@ const refresh=async page=>{
 async function refreshAll(){await Promise.all(pages.map(refresh));}
 const click=async(page,selector)=>{
   const before=await page.locator('#app').getAttribute('data-command-sequence')||0;
-  const expected=await page.locator(selector).evaluate(button=>button.dataset.action??(button.dataset.do==='cards-ready'?'readyWriting':button.closest('form')?.dataset.entry));
+  const expected=await page.locator(selector).evaluate(button=>button.dataset.action??(button.dataset.do==='cards-ready'?'readyWriting':button.dataset.do==='leave'?'leave':button.closest('form')?.dataset.entry));
   await page.locator(selector).click({timeout:25000});
   await page.waitForFunction(({before,expected})=>{const app=document.querySelector('#app');return Number(app.dataset.commandSequence)>Number(before)&&app.dataset.completedOperation===expected&&!app.classList.contains('busy');},{before,expected},{timeout:45000});
 };
@@ -132,6 +138,16 @@ try{
   await click(pages[0],'[data-action=reset]');await refreshAll();
   const reset=await read(pages[0]);assert.equal(reset.phase,'lobby');assert.equal(reset.players.length,4);assert.ok(reset.scores.every(p=>p.score===0));
   assert.equal(reset.generation,2);checks.push('replay returns all 4 players to a clean lobby');
+  for(const page of [...pages].reverse()){
+    await page.locator('[data-do=menu]').click();await click(page,'[data-do=leave]');
+    await page.locator('#entry-name').waitFor();
+    await new Promise(resolve=>setTimeout(resolve,150));
+    assert.equal(await page.locator('#app').getAttribute('data-phase'),'home');
+  }
+  await pages[0].locator('#entry-name').fill(names[0]);await click(pages[0],'button[type=submit]');
+  await pages[0].locator('[data-action=readyLobby]').waitFor();assert.notEqual((await read(pages[0])).id,reset.id);
+  await pages[0].locator('[data-do=menu]').click();await click(pages[0],'[data-do=leave]');
+  checks.push('all players can leave after replay and create an independent fresh lobby');
   for(const page of pages){assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1),false);}
   assert.deepEqual(errors,[]);checks.push('no uncaught browser errors or horizontal overflow in tested mobile views');
   await writeFile(new URL('browser-results.json',output),JSON.stringify({passed:true,base,players:4,turns:12,checks,errors,realtimeVerified:true,publicSignaling:true,transport:'native WebRTC',hostedBuild:!base.includes('127.0.0.1')},null,2));
