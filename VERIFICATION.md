@@ -25,3 +25,7 @@ No uncaught browser errors or horizontal overflow in the tested mobile views. Ho
 Playing requires Internet and the original creator phone's page to remain open and awake. Shared Wi-Fi is recommended. Creator recovery uses the same browser's IndexedDB; clearing it removes that room. No service accounts, environment variables, database or laptop are required.
 
 Later documentation-only commits preserve this tested runtime.
+
+## Photo picker regression fix
+
+The previous immediate-upload test missed an open native picker outliving an autosave/heartbeat rerender. A new two-player regression test failed on the old code (no author preview after selection) and passes locally on the fixed code. It verifies photo upload from both players, images on the other player's overhead card and referee screen, recipient reload, and both photos in the final deck. Core tests: 19 passed. Build: passed. Final hosted photo regression check pending.

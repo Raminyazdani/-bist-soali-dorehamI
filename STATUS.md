@@ -25,3 +25,9 @@ Use native GitHub tree/commit/ref tools to sync when CLI credentials are unavail
 Commands: npm ci; npm test; npm run build; node test/browser-e2e.mjs; E2E_URL=https://rooye-pishooni.vercel.app node test/browser-e2e.mjs.
 
 Future edits: read AGENTS.md and this file, keep changes minimal, verify actual multiplayer flow when transport/shared state changes, and persist source here. No secrets in repository.
+
+## Mobile photo-selection fix — 2026-10-10
+
+User reported a two-player game where a text/photo card (میلاد) reached the other player without its image. Reproduced a dropped file selection: autosave or a heartbeat rerenders the card input while the native picker is open, so the detached input's change event never reaches the delegated app listener. Fixed by binding the upload listener directly to each input; it survives detachment. No game protocol or saved-room format changed.
+
+New test/photo-e2e.mjs reproduces the actual open-picker/rerender race and verifies both creator and guest photo uploads, other-player images in both turns, landscape, recipient reload, and all photos on the scoreboard via real public WebRTC. Before the fix it failed waiting for the author preview; after the fix the whole two-player local flow passes with zero browser errors. npm test (19) and build also pass. The image on Amin's forehead card labelled میلاد was visually checked. Final hosted release verification is next.

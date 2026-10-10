@@ -229,6 +229,11 @@ function render() {
   if (!state) app.innerHTML = renderHome();
   else if (document.body.classList.contains('head-mode')) app.innerHTML = renderPlaying();
   else app.innerHTML = `<div class="shell">${header()}${menu()}${stepper()}<main>${state.phase==='lobby'?renderLobby():state.phase==='writing'?renderWriting():state.phase==='playing'?renderPlaying():renderFinished()}</main><footer>${state.phase==='playing'?'هر سؤال یک قدم نزدیک‌تر.':'بیست سؤال، یک جواب، کلی خنده.'}</footer></div>`;
+  // A mobile picker can finish after a snapshot replaced this input. Keep its
+  // handler on the input itself so the selection still reaches upload().
+  for (const input of app.querySelectorAll('input[data-photo]')) {
+    input.addEventListener('change',()=>upload(input.dataset.photo,input.files[0]));
+  }
   if (focusId) {
     const target = document.getElementById(focusId);
     if (target && !target.disabled) { target.focus({ preventScroll:true }); if (selection && selection[0]!==null) { try { target.setSelectionRange(...selection); } catch {} } }
@@ -272,7 +277,6 @@ async function invite() {
 app.addEventListener('submit', event=>{const form=event.target;if(form.id==='entry-form'){event.preventDefault();submitEntry(form.dataset.entry,form);}});
 app.addEventListener('input', event=>{if(event.target.dataset.card)queueSave(event.target.dataset.card,event.target.value);});
 app.addEventListener('change', event=>{
-  if(event.target.dataset.photo)upload(event.target.dataset.photo,event.target.files[0]);
   if(event.target.dataset.select==='referee')action('setReferee',{playerId:event.target.value}).catch(()=>{});
 });
 app.addEventListener('click',async event=>{
