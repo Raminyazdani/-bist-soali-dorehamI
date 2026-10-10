@@ -141,7 +141,6 @@ export class PeerTransport {
       throw new GameError('گوشی سازنده لابی را وصل نگه می‌دارد؛ برای بازی صفحه‌ات را باز نگه دار.',400,'CREATOR_REQUIRED');
     const before=this.phone.row?.revision;
     const result=this.decorate(await this.service[body.type](body),body.playerId);
-    if(result.credentials)this.identity=this.creator?{...result.credentials}:this.identity;
     if(before!==this.phone.row?.revision||body.type==='join')this.notifySoon();
     return result;
   }
@@ -186,6 +185,7 @@ export class PeerTransport {
       if(!this.creator||!this.phone.row||this.phone.row.id!==body.roomId)await this.initializeCreator(body);
       if(this.phone.row)await this.openHost(this.phone.row.state.code);
       const result=await this.serial(()=>this.execute(body));
+      if(result.credentials)this.identity=result.credentials;
       const envelope=await this.envelope('response',result);
       for(const [key,value] of Object.entries(envelope.photos))this.photos.set(key,value);
       if(result.snapshot)this.inflate(result.snapshot);

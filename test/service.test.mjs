@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { GameService } from '../lib/service.mjs';
 import { GameError } from '../lib/game.mjs';
 
-// This adapter is a test fixture only. The production app always uses Supabase.
+// This adapter is a test fixture; production persists the authoritative phone room in IndexedDB.
 class TestStore {
   constructor(){this.rows=new Map();this.people={};this.uploads=new Set();this.deleted=[];this.conflicts=0;}
   async insert(room){await new Promise(resolve=>setImmediate(resolve));if(this.rows.has(room.id))return null;const row={id:room.id,revision:0,state:structuredClone(room)};this.rows.set(room.id,row);return structuredClone(row);}

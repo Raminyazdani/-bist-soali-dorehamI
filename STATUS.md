@@ -14,17 +14,17 @@ Vercel static hosting + PeerJS public signaling + the creator's phone as authori
 
 - Full lobby/card/turn/scoring/replay UI and shared rules existed before pivot. Previous implementation passed 20 core/service/SQL tests and a 4-mobile-context full 12-turn local PostgreSQL flow.
 - Portable crypto refactor passed all those 20 tests. Shared rules do not use Node-only APIs now.
-- Peer transport, serialized authoritative requests, filtered projections, photo caching, IndexedDB persistence, creator recovery and UI integration implemented. Build and full peer flow still need verification; do not claim playable yet.
+- Peer transport, serialized authoritative requests, filtered projections, photo caching, IndexedDB persistence, creator recovery and UI integration implemented. Build passed. Real public-cloud peer E2E passed with four mobile contexts and 12 turns, photo transfer, readiness, undo, pause, player reload, scores and replay. An expanded test for creator reload and a larger photo is running next; do not claim the hosted production version playable yet.
 - Vercel project prj_zdRCe1k29DujofXP7T3K11YnZHMO, team team_t1y5QDuakPdppOy5zuZLx66A, name bist-soali-dorehami, URL https://bist-soali-dorehami.vercel.app/.
 - Last production deployment dpl_9qFHbG516aorS6i6ABtNqrU2kYB3 is old Supabase version and not playable (configured:false). Must replace with verified peer version.
-- Source locally committed on main through 5e3f63e; active branch p2p-no-setup carries the pivot. Archive with Git bundle was saved before pivot. Native GitHub tools now can initialize and sync user-created repo.
+- Source locally committed on main through 5e3f63e; active branch p2p-no-setup carries the pivot. Archive with Git bundle was saved before pivot. Native GitHub tools initialized master and synced the full source through d6386c857b91cfd9c77349ac3bd8056e2873db4e. Local origin is configured and fetch works.
 
 ## Remaining
 
-1. Sync an initial checkpoint to provided GitHub repo. Empty repo may need github_create_file to initialize master before bulk tree/commit/ref update.
-2. Remove unused Supabase setup/dependencies; prior work remains in local Git history.
-3. Adapt browser E2E to real public PeerJS cloud and native WebRTC. Exercise four mobile contexts, photos, readiness, all 12 turns, pause/undo, guest reload, creator reload recovery, scores and replay. No fake production backend.
-4. Deploy peer build and verify actual URL with real multiple clients. No environment setup required.
+1. Keep syncing tested changes to the provided GitHub repo. It is initialized and source is already persisted.
+2. Unused Supabase setup/dependencies removed; prior implementation remains on local main and in the previously saved Git bundle. Current npm test passes 19 meaningful reducer/service tests.
+3. Real peer browser E2E passed. Expanded creator recovery and large-photo coverage needs to pass. Test observers also use actual authenticated network snapshots; no direct private-host access or mock transport.
+4. Now a remote repository is usable, use create_git_project for a linked project (the existing bare project cannot be reconnected by that tool), deploy and verify actual URL with real multiple clients. No environment setup required.
 5. Sync final tested source/status to GitHub; link Vercel if available without blocking deployment. Deliver playable URL with creator-phone condition.
 
 Do not request passwords or OTPs in chat. Do not display secrets. Do not claim tests passed before actual results. No subagents were requested.

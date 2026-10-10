@@ -220,6 +220,7 @@ function renderFinished() {
   return `<section class="stage-heading finish-heading"><span class="winner-star">✦</span><span class="eyebrow">چه دورهمی خوبی!</span><h1>${winners.map(p=>esc(p.name)).join(' و ')}<br><span>اول ${winners.length>1?'شدند':'شد'}!</span></h1><p>امتیاز بیشتر؛ در تساوی، مجموع زمان کمتر.</p></section><section class="panel scoreboard"><table><thead><tr><th>رتبه</th><th>بازیکن</th><th>امتیاز</th><th>زمان</th></tr></thead><tbody>${state.scores.map(p=>`<tr class="${p.rank===1?'winner-row':''}"><td><span class="rank">${p.rank===1?'♕':fa(p.rank)}</span></td><td>${esc(p.name)}${p.playerId===state.you?'<small>تو</small>':''}<span class="score-detail">${fa(p.correct)} حدس درست از ${fa(p.completed)}</span></td><td class="score-number">${fa(p.score)}</td><td class="score-time" dir="ltr">${fullTime(p.elapsedMs)}</td></tr>`).join('')}</tbody></table>${host()?'<button class="button primary full" data-action="reset">همین جمع، بازی تازه ↻</button>':'<div class="notice">مدیر می‌تواند بازی تازه را شروع کند.</div>'}</section><details class="deck-summary"><summary>همهٔ کارت‌ها و نویسنده‌ها <span>${fa(state.completedCards.length)} کارت</span></summary><div class="deck-grid">${state.completedCards.map(r=>`<article class="summary-card">${r.card.imageUrl?`<img src="${esc(r.card.imageUrl)}" alt="عکس ${esc(r.card.text)}" loading="lazy"/>`:''}<h3>${esc(r.card.text)}</h3><p>نویسنده: ${esc(r.card.authorName)}</p><p>بازیکن: ${esc(nameOf(r.playerId))}</p><span class="pill ${r.success?'green':''}">${r.success?'✓ درست':'بی‌پاسخ'} · ${fa(r.score)} امتیاز</span></article>`).join('')}</div></details>`;
 }
 function render() {
+  app.dataset.revision=String(state?.revision??-1);app.dataset.phase=state?.phase??'home';app.dataset.you=state?.you??'';
   const focused = document.activeElement;
   const focusId = focused?.id, selection = ['TEXTAREA','INPUT'].includes(focused?.tagName) ? [focused.selectionStart, focused.selectionEnd] : null;
   const scroll = window.scrollY;
@@ -301,7 +302,7 @@ transport.onStatus(connected=>{live=connected;updateConnection();});
 async function initialize() {
   try {
     config={transport:'peer'};setupError='';
-    if(session){await sync(false);if(session)await connectRoom();}
+    if(session){await sync(false);if(session){await connectRoom();await stayAwake();}}
     else {
       const pending=readStored(PENDING_KEY);
       if(pending){try{const joined=await api(pending);session=joined.credentials;storeValue(SESSION_KEY,session);storeValue(PENDING_KEY,null);accept(joined.snapshot);await connectRoom();}catch{render();}}
