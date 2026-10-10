@@ -43,3 +43,21 @@ Command: `E2E_URL=https://rooye-pishooni.vercel.app node test/photo-e2e.mjs`.
 - both photos remain on completed cards and scoreboard for both players
 
 Zero uncaught browser errors. No horizontal overflow. No physical phones were used by this test. Later documentation-only commits preserve the verified runtime.
+
+
+## Lobby management and creator exit
+
+Verified at 2026-10-10T21:26:07.810Z.
+Runtime source: 77b764fa9a441376e227dd55c03bcebc51f66dc8.
+Production deployment: dpl_D1ChTqRteUPPZMstTsLsmDYZkS4a, READY, stable URL https://rooye-pishooni.vercel.app/.
+
+`npm test`: 25 passed. `npm run build`: passed.
+`node test/browser-e2e.mjs`: PASSED with four mobile browser contexts and all 12 turns over actual public PeerJS/native WebRTC, including photo transfer, undo/pause, guest and creator reload, scores, replay and leave/recreate.
+`E2E_URL=https://rooye-pishooni.vercel.app node test/lobby-e2e.mjs`: PASSED with three mobile browser contexts over actual public PeerJS/native WebRTC.
+
+- manager kicks a lobby guest and the guest returns home immediately
+- confirmed mid-game kick resets remaining players to a clean two-person lobby
+- original creator can close after transferring management; all connected players return home
+- transferred manager can close; original host leaves cleanly; a fresh independent lobby works
+
+Zero uncaught browser errors and no horizontal overflow in both browser runs. New rule/service tests cover manager permissions, original creator protection, confirmed kick/reset, legacy creator identity, closure persistence and leaderboard sum of successful and failed turn durations. Ranking is total points descending, then total completed-turn time ascending, excluding pause and countdown. Exact score/time ties share rank. All clients should refresh before using the new controls. Later documentation-only commits preserve this verified runtime.
