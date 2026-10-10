@@ -15,6 +15,7 @@ class PhoneStore {
     this.row=null;
     const row=await readRecord('rooms',id);
     if(!row)return;
+    if(row.state.phase==='closed')throw new GameError('این لابی بسته شده است؛ یک لابی تازه بساز.',410,'ROOM_CLOSED');
     if(row.state.expiresAt<=Date.now())throw new GameError('این لابی بسته شده است؛ یک لابی تازه بساز.',410,'EXPIRED');
     this.row=row;this.people={...(row.people??{})};
   }
@@ -55,7 +56,7 @@ export class PeerTransport {
     this.peer=null;this.peerOpening=null;this.client=null;this.connecting=null;this.connections=new Set();
     this.pending=new Map();this.photos=new Map();this.listeners=new Set();this.statusListeners=new Set();
     this.phone=new PhoneStore(this);this.service=new GameService(this.phone);this.queue=Promise.resolve();
-    this.identity=null;this.online=false;this.creator=false;this.closed=false;this.notifyTimer=null;
+    this.identity=null;this.online=false;this.creator=false;this.closed=false;this.notifyTimer=null;this.endedCode=null;
   }
   onSnapshot(callback){this.listeners.add(callback);return()=>this.listeners.delete(callback);}
   onStatus(callback){this.statusListeners.add(callback);callback(this.online);return()=>this.statusListeners.delete(callback);}
@@ -110,7 +111,10 @@ export class PeerTransport {
     })();
     try{return await this.connecting;}finally{this.connecting=null;}
   }
-  rejectPending(){for(const item of this.pending.values()){clearTimeout(item.timer);item.reject(timeoutError());}this.pending.clear();}
+  rejectPending(){
+    const error=this.endedCode?new GameError(this.endedCode==='ROOM_CLOSED'?'لابی بسته شد.':'مدیر تو را از لابی حذف کرد.',410,this.endedCode):timeoutError();
+    for(const item of this.pending.values()){clearTimeout(item.timer);item.reject(error);}this.pending.clear();
+  }
   async receive(envelope){
     if(!envelope||!['response','snapshot'].includes(envelope.kind))return;
     for(const [key,value] of Object.entries(envelope.photos??{}))this.photos.set(key,value);
@@ -145,7 +149,8 @@ export class PeerTransport {
       throw new GameError('گوشی سازنده لابی را وصل نگه می‌دارد؛ برای بازی صفحه‌ات را باز نگه دار.',400,'CREATOR_REQUIRED');
     const before=this.phone.row?.revision;
     const result=this.decorate(await this.service[body.type](body),body.playerId);
-    if(before!==this.phone.row?.revision||body.type==='join')this.notifySoon();
+    if(body.type==='action'&&body.action==='closeRoom')await this.broadcast();
+    else if(before!==this.phone.row?.revision||body.type==='join')this.notifySoon();
     return result;
   }
   receiveConnection(connection){
@@ -175,6 +180,10 @@ export class PeerTransport {
     const row=this.phone.row;if(!row||!this.creator)return;
     for(const info of this.connections){
       if(!info.actor||!info.connection.open)continue;
+      if(!row.state.players.some(p=>p.id===info.actor)){
+        this.send(info,'snapshot',{snapshot:{id:row.id,you:info.actor,phase:'removed'}});
+        continue;
+      }
       try{this.send(info,'snapshot',this.decorate(await this.service.respond(row,info.actor),info.actor));}catch{}
     }
     if(this.identity&&row.state.players.some(p=>p.id===this.identity.playerId)){
@@ -216,7 +225,12 @@ export class PeerTransport {
     }).catch(()=>{});
   }
   close(){
-    this.closed=true;clearTimeout(this.notifyTimer);this.rejectPending();this.peer?.destroy();this.peer=null;this.client=null;
+    this.closed=true;clearTimeout(this.notifyTimer);this.rejectPending();
+    const peer=this.peer;
+    // Let the final small closure snapshots drain before stopping the host peer.
+    if(this.creator&&this.endedCode==='ROOM_CLOSED')setTimeout(()=>peer?.destroy(),1000);
+    else peer?.destroy();
+    this.peer=null;this.client=null;this.endedCode=null;
     this.connecting=null;this.connections.clear();this.photos.clear();this.identity=null;this.creator=false;this.phone=new PhoneStore(this);this.service=new GameService(this.phone);this.status(false);
   }
 }

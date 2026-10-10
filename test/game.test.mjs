@@ -141,3 +141,44 @@ test('rank sorts by score then total time; exact ties share rank',()=>{
   room.results=[{playerId:ids[0],score:15,elapsedMs:10000,success:true},{playerId:ids[1],score:15,elapsedMs:5000,success:true},{playerId:ids[2],score:15,elapsedMs:5000,success:true},{playerId:ids[3],score:16,elapsedMs:50000,success:true}];
   const rows=leaderboard(room);assert.equal(rows[0].playerId,ids[3]);assert.equal(rows[1].rank,2);assert.equal(rows[2].rank,2);assert.equal(rows[3].rank,4);
 });
+
+test('only the manager can kick; creator is protected; lobby readiness is reset',()=>{
+  let {room}=createRoom({name:'رامین',now:baseTime});
+  room=joinRoom(room,'امین',baseTime).room;room=joinRoom(room,'میلاد',baseTime).room;
+  const [a,b,c]=room.players.map(p=>p.id);
+  for(const p of room.players)room=cmd(room,p.id,'readyLobby',{ready:true});
+  assert.throws(()=>cmd(room,b,'kick',{playerId:c}),{code:'HOST_ONLY'});
+  assert.throws(()=>cmd(room,a,'kick',{playerId:a}),{code:'CREATOR_REQUIRED'});
+  room=cmd(room,a,'kick',{playerId:c});
+  assert.equal(room.players.length,2);assert.ok(room.players.every(p=>!p.ready));
+  room=cmd(room,a,'transferHost',{playerId:b});
+  assert.throws(()=>cmd(room,b,'kick',{playerId:a}),{code:'CREATOR_REQUIRED'});
+});
+test('kick during play requires confirmation and resets the remaining group cleanly',()=>{
+  let room=prepared(3,1);const target=room.players.find(p=>p.id!==room.hostId).id;
+  assert.throws(()=>cmd(room,room.hostId,'kick',{playerId:target}),{code:'CONFIRM_KICK'});
+  room=cmd(room,room.hostId,'kick',{playerId:target,confirm:true});
+  assert.equal(room.phase,'lobby');assert.equal(room.generation,2);assert.equal(room.players.length,2);
+  assert.deepEqual(room.cards,[]);assert.deepEqual(room.assignments,{});assert.equal(room.turn,null);assert.deepEqual(room.results,[]);
+  assert.ok(room.players.every(p=>!p.ready));assert.ok(leaderboard(room).every(p=>p.score===0));
+});
+test('manager or original creator may close; closed rooms reject join, state and reset',()=>{
+  let {room,credentials}=createRoom({name:'رامین',now:baseTime});
+  room=joinRoom(room,'امین',baseTime).room;room=joinRoom(room,'میلاد',baseTime).room;
+  const [a,b,c]=room.players.map(p=>p.id);
+  assert.throws(()=>cmd(room,c,'closeRoom'),{code:'HOST_ONLY'});
+  room=cmd(room,a,'transferHost',{playerId:b});delete room.creatorId;
+  room=applyAction(room,a,'closeRoom',{}, {now:baseTime,creatorId:a,requestId:'close_request_01'}).room;
+  assert.equal(room.phase,'closed');assert.equal(room.expiresAt,baseTime);
+  assert.throws(()=>authenticate(room,a,credentials.token,baseTime),{code:'ROOM_CLOSED'});
+  assert.throws(()=>joinRoom(room,'دیگر',baseTime),{code:'ROOM_CLOSED'});
+  assert.throws(()=>cmd(room,b,'reset',{confirm:true}),{code:'ROOM_CLOSED'});
+});
+test('leaderboard sums all completed turn times including failures before tie-breaking',()=>{
+  const room=prepared(3,2),[a,b,c]=room.players.map(p=>p.id);
+  room.results=[{playerId:a,score:10,elapsedMs:5000,success:true},{playerId:a,score:0,elapsedMs:40000,success:false},
+    {playerId:b,score:10,elapsedMs:20000,success:true},{playerId:b,score:0,elapsedMs:10000,success:false},
+    {playerId:c,score:11,elapsedMs:90000,success:true}];
+  const rows=leaderboard(room);assert.equal(rows[0].playerId,c);assert.equal(rows[1].playerId,b);
+  assert.equal(rows.find(p=>p.playerId===a).elapsedMs,45000);assert.equal(rows.find(p=>p.playerId===b).elapsedMs,30000);
+});

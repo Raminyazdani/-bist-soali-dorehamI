@@ -46,6 +46,10 @@ function saveDrafts() {
 }
 function accept(next) {
   if(!session||next.id!==session.roomId||next.you!==session.playerId)return;
+  if(next.phase==='closed'||next.phase==='removed'){
+    transport.endedCode=next.phase==='closed'?'ROOM_CLOSED':'REMOVED';
+    leaveLocal();toast(next.phase==='closed'?'لابی بسته شد.':'مدیر تو را از لابی حذف کرد.',false);return;
+  }
   if (state && next.id === state.id && next.revision < state.revision) return;
   if (!state || state.generation !== next.generation || state.id !== next.id) {
     draftMap = new Map(Object.entries(readStored(`forehead-drafts-${next.id}-${next.generation}`) ?? {}));
@@ -62,7 +66,7 @@ async function sync(silent = true) {
   try {
     const result = await api({ type:'state', ...authData() }); accept(result.snapshot);
   } catch (error) {
-    if (['UNAUTHORIZED','EXPIRED','NOT_FOUND'].includes(error.code)) { leaveLocal(); toast(error.message); }
+    if (['UNAUTHORIZED','EXPIRED','NOT_FOUND','ROOM_CLOSED','REMOVED'].includes(error.code)) { leaveLocal(); toast(error.message); }
     else if (!silent) toast(error.message || 'اینترنت قطع است؛ جای تو در بازی محفوظ می‌ماند.');
   } finally { syncing = false; updateConnection(); if (syncAgain) { syncAgain = false; setTimeout(() => sync(), 50); } }
 }
@@ -100,6 +104,7 @@ async function action(name, data = {}, options = {}) {
     if (result.left) leaveLocal(); else accept(result.snapshot);
     return result;
   } catch (error) {
+    if (['ROOM_CLOSED','REMOVED'].includes(error.code)) { leaveLocal(); toast(error.message,false); return; }
     if (['STALE_GAME','STALE_TURN','WRONG_PHASE'].includes(error.code)) await sync();
     if (!options.quiet) toast(error.message || 'ارتباط قطع شد؛ دوباره امتحان کن.');
     throw error;
@@ -168,11 +173,14 @@ function menu() {
   if (!menuOpen) return '';
   const others = state.players.filter(p=>p.id!==state.you);
   const refereeChoices = state.players.filter(p=>p.id!==state.turn?.playerId);
+  const removable = others.filter(p=>p.id!==state.creatorId);
   return `<aside class="room-menu"><div class="menu-title">مدیریت دورهمی<button class="icon-button" data-do="menu" aria-label="بستن تنظیمات">×</button></div>${host() ? `
     ${state.phase==='playing'?`<label>داور این نوبت<select data-select="referee">${refereeChoices.map(p=>`<option value="${p.id}" ${state.turn.refereeId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`:''}
     ${others.length?`<label>انتقال مدیریت<select id="host-target"><option value="">یک نفر را انتخاب کن</option>${others.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label><button class="button small secondary" data-do="transfer">انتقال مدیریت</button>`:''}
+    ${removable.length?`<label>حذف بازیکن<select id="kick-target"><option value="">یک نفر را انتخاب کن</option>${removable.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label><button class="button small secondary" data-do="kick">حذف بازیکن</button>`:''}
     ${state.phase!=='lobby'?'<button class="text-button danger" data-do="reset-confirm">شروع دوبارهٔ بازی</button>':''}
     ` : '<button class="text-button" data-do="claim">مدیر قطع شده؟ مدیریت را بگیر</button>'}
+    ${host()||state.you===state.creatorId?'<button class="text-button danger" data-do="close-room">بستن لابی و خروج</button>':''}
     ${state.phase==='lobby'&&(state.you!==state.creatorId||state.players.length===1)?'<button class="text-button danger" data-do="leave">خروج از لابی</button>':'<p class="muted tiny">با همین مرورگر می‌توانی به بازی برگردی.</p>'}
     <p class="tiny muted">گوشی ${esc(nameOf(state.creatorId))} جمع را وصل نگه می‌دارد؛ صفحهٔ بازی‌اش باز و روشن بماند.</p>
     <p class="tiny muted">حدس درست: سؤال‌های باقی‌مانده<br>تساوی: مجموع زمان کمتر</p></aside>`;
@@ -210,7 +218,7 @@ function renderPlaying() {
     return `<section class="turn-result"><span class="result-symbol ${result.success?'success':'failure'}">${result.success?'✦':'↻'}</span><span class="eyebrow">نوبت ${esc(nameOf(turn.playerId))} تمام شد</span><h1>${result.success?'پیداش کردی!':'این یکی موند!'}</h1>${turnCard(turn.card)}<div class="result-stats"><div><b>${fa(result.score)}</b><span>امتیاز این نوبت</span></div><div><b dir="ltr">${fullTime(result.elapsedMs)}</b><span>زمان نوبت</span></div></div>${referee()||host()?'<button class="button primary" data-action="next">نوبت بعدی ←</button>':'<p class="muted">منتظر شروع نوبت بعدی هستیم.</p>'}<p class="tiny muted">نفر بعد: ${esc(nameOf(state.order[(state.turnIndex+1)%state.order.length]))}</p></section>`;
   }
   if (guesser()) {
-    return `<main class="head-screen ${turn.status==='waiting'?'waiting':''}"><div class="head-top"><span>نوبت توست، ${esc(me().name)}!</span><span>دور ${fa(Math.floor(state.turnIndex/state.order.length)+1)} از ${fa(state.cardsPerPlayer)}</span></div>${turn.status==='waiting'?`<div class="head-instruction"><span class="forehead-symbol">؟</span><h1>گوشی بالای سرت!</h1><p>صفحه رو به بقیه باشد.<br>${esc(nameOf(turn.refereeId))} شروع را می‌زند.</p><button class="text-button" data-do="fullscreen">بزرگ‌کردن صفحه ⛶</button><button class="text-button" data-do="menu">مدیریت نوبت</button></div>`:`<div class="head-countdown js-countdown"><b></b><span>آماده باش…</span></div>${turnCard(turn.card,'head-card js-reveal')}<div class="head-paused ${turn.status==='paused'?'':'hidden'}"><span>Ⅱ</span><h2>بازی مکث شده</h2><p>${turn.pauseReason==='connection'?'منتظر برگشت اتصال هستیم.':'داور دوباره ادامه می‌دهد.'}</p><button class="text-button" data-do="menu">مدیریت نوبت</button></div>`}<div class="head-bottom"><span>سؤال باقی‌مانده <b>${fa(turn.remaining)}</b></span><span class="js-time" dir="ltr"></span></div>${menu()}</main>`;
+    return `<main class="head-screen ${turn.status==='waiting'?'waiting':''}"><div class="head-top"><button class="icon-button" data-do="menu" aria-label="مدیریت لابی">⋯</button><span>نوبت توست، ${esc(me().name)}!</span><span>دور ${fa(Math.floor(state.turnIndex/state.order.length)+1)} از ${fa(state.cardsPerPlayer)}</span></div>${turn.status==='waiting'?`<div class="head-instruction"><span class="forehead-symbol">؟</span><h1>گوشی بالای سرت!</h1><p>صفحه رو به بقیه باشد.<br>${esc(nameOf(turn.refereeId))} شروع را می‌زند.</p><button class="text-button" data-do="fullscreen">بزرگ‌کردن صفحه ⛶</button><button class="text-button" data-do="menu">مدیریت نوبت</button></div>`:`<div class="head-countdown js-countdown"><b></b><span>آماده باش…</span></div>${turnCard(turn.card,'head-card js-reveal')}<div class="head-paused ${turn.status==='paused'?'':'hidden'}"><span>Ⅱ</span><h2>بازی مکث شده</h2><p>${turn.pauseReason==='connection'?'منتظر برگشت اتصال هستیم.':'داور دوباره ادامه می‌دهد.'}</p><button class="text-button" data-do="menu">مدیریت نوبت</button></div>`}<div class="head-bottom"><span>سؤال باقی‌مانده <b>${fa(turn.remaining)}</b></span><span class="js-time" dir="ltr"></span></div>${menu()}</main>`;
   }
   return `<section class="stage-heading compact"><span class="eyebrow">دور ${fa(Math.floor(state.turnIndex/state.order.length)+1)} از ${fa(state.cardsPerPlayer)} · نوبت ${fa(state.turnIndex+1)} از ${fa(state.totalTurns)}</span><h1>نوبت ${esc(nameOf(turn.playerId))}</h1><p>${referee()?'تو داور این نوبتی؛ سؤال‌ها و نتیجه را ثبت کن.':`داور: ${esc(nameOf(turn.refereeId))} · تو به سؤال‌ها جواب بده.`}</p></section>${turnOrder()}<div class="play-layout"><section class="card-stage">${turn.status==='waiting'?'<div class="hidden-card"><b>؟</b><p>کارت با شروع نوبت رو می‌شود.</p></div>':`<div class="observer-countdown js-countdown"><b></b><span>گوشی بالای سر باشد…</span></div>${turnCard(turn.card,'js-reveal')}`}</section><section class="panel control-panel"><div class="metrics"><div class="question-meter ${turn.remaining===0?'empty':''}"><span>سؤال باقی‌مانده</span><b>${fa(turn.remaining)}</b><small>از ۲۰ سؤال</small></div><div class="time-meter"><span>زمان نوبت</span><b class="js-time" dir="ltr"></b><small>زمان کمتر، رتبهٔ بهتر</small></div></div>
     ${turn.status==='waiting'?`${referee()?'<button class="button primary full" data-action="start">شروع نوبت ▶</button>':'<div class="notice">منتظر شروع داور هستیم.</div>'}<p class="tiny muted">سه ثانیه فرصت برای بالابردن گوشی.</p>`:turn.status==='paused'?`<div class="notice warn">${turn.pauseReason==='connection'?'اتصال بازیکن یا داور قطع شد؛ زمان متوقف است.':'زمان موقتاً متوقف شده است.'}</div>${referee()?'<button class="button primary full" data-action="resume">ادامهٔ نوبت ▶</button>':''}`:`${turn.remaining===0?'<div class="notice warn">پاسخ سؤال بیستم را هم بشنو؛ سپس نتیجه را ثبت کن.</div>':''}${referee()?`<div class="main-controls"><button class="button dark full" data-action="question" data-running ${turn.remaining===0?'disabled':''}>یک سؤال پرسید <span>−۱</span></button><button class="button primary full" data-action="correct" data-running>✓ درست حدس زد</button><button class="button secondary full" data-action="failed" data-running ${turn.remaining!==0?'disabled':''}>پایان ناموفق</button></div><div class="minor-controls"><button class="text-button" data-action="undoQuestion" data-running ${!turn.canUndo?'disabled':''}>↶ برگرداندن سؤال</button><button class="text-button" data-action="pause">Ⅱ مکث</button></div>`:'<div class="notice">ثبت سؤال و نتیجه با داور است.</div>'}`}
@@ -293,6 +301,13 @@ app.addEventListener('click',async event=>{
     if(command==='transfer'){const id=$('#host-target').value;if(id){await action('transferHost',{playerId:id});menuOpen=false;render();}}
     if(command==='claim')await action('claimHost');
     if(command==='leave')await action('leave');
+    if(command==='kick'){
+      const id=$('#kick-target').value, restarting=state.phase!=='lobby';
+      if(id&&confirm(`«${nameOf(id)}» از لابی حذف شود؟${restarting?' بازی فعلی تمام می‌شود و بقیه به لابی برمی‌گردند.':''}`)){
+        menuOpen=false;await action('kick',{playerId:id,confirm:restarting});
+      }
+    }
+    if(command==='close-room'&&confirm('لابی برای همه بسته شود و خارج شوی؟'))await action('closeRoom');
     if(command==='reset-confirm' && confirm('این بازی تمام شود و با کارت‌های تازه از اول شروع کنیم؟')){menuOpen=false;await action('reset',{confirm:true});}
     if(command==='fullscreen'){try{await document.documentElement.requestFullscreen?.();}catch{}await stayAwake();}
     if(command==='retry-setup')await initialize();

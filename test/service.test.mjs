@@ -60,3 +60,23 @@ test('invalid credentials cannot change a real service room',async()=>{
   await assert.rejects(()=>service.action({...auth(a.credentials),token:'wrong',action:'setCount',data:{count:20},requestId:'invalid_credentials'}),{code:'UNAUTHORIZED'});
   const current=await service.state(auth(a.credentials));assert.equal(current.snapshot.cardsPerPlayer,3);
 });
+
+test('service persists closure and rejects all old participant credentials',async()=>{
+  const store=new TestStore(),service=new GameService(store);
+  const a=await service.create({name:'رامین',cardsPerPlayer:1,...identity()});
+  const b=await service.join({name:'امین',code:a.credentials.code,...identity()});
+  await assert.rejects(command(service,b.credentials,'closeRoom'),{code:'HOST_ONLY'});
+  const ended=await command(service,a.credentials,'closeRoom');assert.equal(ended.snapshot.phase,'closed');
+  await assert.rejects(service.state(auth(a.credentials)),{code:'ROOM_CLOSED'});
+  await assert.rejects(service.state(auth(b.credentials)),{code:'ROOM_CLOSED'});
+  await assert.rejects(service.join({name:'میلاد',code:a.credentials.code,...identity()}),{code:'ROOM_CLOSED'});
+});
+test('service kick removes the old actor and prevents that actor changing the room',async()=>{
+  const store=new TestStore(),service=new GameService(store);
+  const a=await service.create({name:'رامین',cardsPerPlayer:1,...identity()});
+  const b=await service.join({name:'امین',code:a.credentials.code,...identity()});
+  await command(service,a.credentials,'kick',{playerId:b.credentials.playerId});
+  assert.equal((await service.state(auth(a.credentials))).snapshot.players.length,1);
+  await assert.rejects(service.state(auth(b.credentials)),{code:'UNAUTHORIZED'});
+  await assert.rejects(command(service,b.credentials,'readyLobby',{ready:true}),{code:'UNAUTHORIZED'});
+});
