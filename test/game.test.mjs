@@ -20,21 +20,43 @@ function prepared(players=4, count=3) {
   return room;
 }
 
-test('constrained dealing is balanced, unique and never deals to the author, for 2–12 players',()=>{
-  for(let p=2;p<=12;p++)for(const n of [1,2,5,20])for(let seed=1;seed<=20;seed++){
+test('dealing mixes authors evenly, stays unique and never deals to the author, for 2–12 players',()=>{
+  for(let p=2;p<=12;p++)for(const n of [1,2,3,5,20])for(let seed=1;seed<=20;seed++){
     let x=seed;const rng=()=>{x=(x*1664525+1013904223)>>>0;return x/4294967296;};
     const players=Array.from({length:p},(_,i)=>({id:String(i)}));
     const cards=players.flatMap(author=>Array.from({length:n},(_,i)=>({id:`${author.id}-${i}`,authorId:author.id,text:'x'})));
     const dealt=dealCards(players,cards,n,rng),all=Object.values(dealt).flat();
     assert.equal(all.length,p*n);assert.equal(new Set(all).size,p*n);
-    for(const player of players){assert.equal(dealt[player.id].length,n);for(const id of dealt[player.id])assert.notEqual(cards.find(c=>c.id===id).authorId,player.id);}
+    for(const player of players){
+      assert.equal(dealt[player.id].length,n);
+      const counts=new Map(players.filter(p=>p.id!==player.id).map(p=>[p.id,0]));
+      for(const id of dealt[player.id]){
+        const author=cards.find(c=>c.id===id).authorId;
+        assert.notEqual(author,player.id);counts.set(author,counts.get(author)+1);
+      }
+      assert.equal([...counts.values()].every(value=>value===Math.floor(n/(p-1))||value===Math.ceil(n/(p-1))),true);
+    }
   }
 });
-test('random derangement fallback terminates even with a degenerate random generator',()=>{
+test('diverse dealing terminates even with a degenerate random generator',()=>{
   const players=['a','b','c','d'].map(id=>({id}));
   const cards=players.map(p=>({id:p.id,authorId:p.id,text:'x'}));
   const result=dealCards(players,cards,1,()=>0.999999);
   for(const p of players)assert.notEqual(result[p.id][0],p.id);
+});
+test('four-player three-card games vary between seeds and spread every author across the other three players',()=>{
+  const players=['رامین','میلاد','امین','مهسا'].map(id=>({id}));
+  const cards=players.flatMap(p=>Array.from({length:3},(_,i)=>({id:`${p.id}-${i}`,authorId:p.id,text:'x'})));
+  const outcomes=new Set();
+  for(let seed=1;seed<=20;seed++){
+    let x=seed;const random=()=>{x=(x*1664525+1013904223)>>>0;return x/4294967296;};
+    const hands=dealCards(players,cards,3,random);outcomes.add(JSON.stringify(hands));
+    for(const player of players){
+      const authors=hands[player.id].map(id=>cards.find(card=>card.id===id).authorId);
+      assert.deepEqual(new Set(authors),new Set(players.filter(p=>p.id!==player.id).map(p=>p.id)));
+    }
+  }
+  assert.ok(outcomes.size>1);
 });
 test('lobby does not begin early, locks joining at writing, and requires mandatory text',()=>{
   let {room}=createRoom({name:'رامین',now:baseTime});

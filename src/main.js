@@ -3,12 +3,12 @@ import './style.css';
 
 const $ = selector => document.querySelector(selector);
 const app = $('#app');
-const SESSION_KEY = 'forehead-session-v2', PENDING_KEY = 'forehead-pending-v2';
+const SESSION_KEY = 'forehead-session-v3', PENDING_KEY = 'forehead-pending-v3';
 let session = readStored(SESSION_KEY), state = null, config = null;
 let busy = false, syncing = false, syncAgain = false, live = false, lastContact = 0, offset = 0, wakeLock;
 let homeTab = new URL(location.href).searchParams.get('room') ? 'join' : 'create';
 let menuOpen = false, setupError = '', uploadIds = new Set(), draftMap = new Map(), saveTimers = new Map();
-let commandSequence=0;
+let commandSequence=0, pendingConfirmation=null;
 const fa = n => Number(n).toLocaleString('fa-IR');
 const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const digits = value => String(value).replace(/[۰-۹]/g, c => String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g, c => String(c.charCodeAt(0)-1632));
@@ -25,6 +25,49 @@ function fullTime(ms) { return `${seconds(ms)}٫${fa(Math.floor((ms%1000)/100))}
 function token() { const bytes = crypto.getRandomValues(new Uint8Array(24)); return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function toast(message, error = true) { const el = $('#toast'); el.textContent = message; el.className = `visible ${error ? 'error' : 'ok'}`; clearTimeout(toast.timer); toast.timer = setTimeout(() => el.className = '', 5000); }
 function setBusy(value) { busy = value; app.classList.toggle('busy', value); updateControls(); }
+const confirmationState = room => JSON.stringify([room?.id,room?.generation,room?.phase,room?.hostId,room?.turn?.id,room?.turn?.status,room?.turn?.remaining,room?.turn?.refereeId]);
+function dismissConfirmation(accepted=false) {
+  if (!pendingConfirmation) return;
+  const { dialog, resolve } = pendingConfirmation; pendingConfirmation=null;
+  dialog.close(); dialog.remove(); resolve(accepted);
+}
+function confirmSensitive(title, message, label) {
+  if (pendingConfirmation) return Promise.resolve(false);
+  return new Promise(resolve=>{
+    const dialog=document.createElement('dialog');
+    dialog.className='confirmation-dialog';
+    dialog.setAttribute('role','alertdialog');
+    dialog.setAttribute('aria-modal','true');
+    dialog.setAttribute('aria-labelledby','confirmation-title');
+    dialog.setAttribute('aria-describedby','confirmation-message');
+    dialog.innerHTML=`<h2 id="confirmation-title">${esc(title)}</h2><p id="confirmation-message">${esc(message)}</p><div class="confirmation-buttons"><button class="button secondary" data-confirm="cancel" autofocus>نه، برگرد</button><button class="button primary" data-confirm="accept">${esc(label)}</button></div>`;
+    dialog.addEventListener('cancel',event=>{event.preventDefault();dismissConfirmation();});
+    dialog.addEventListener('click',event=>{
+      const choice=event.target.closest('[data-confirm]');
+      if(choice)dismissConfirmation(choice.dataset.confirm==='accept');
+      else if(event.target===dialog){
+        const box=dialog.getBoundingClientRect();
+        if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)dismissConfirmation();
+      }
+    });
+    pendingConfirmation={dialog,resolve,state:confirmationState(state)};
+    document.body.append(dialog);dialog.showModal();
+  });
+}
+async function sensitiveAction(name, data={}) {
+  if (busy || !state) return;
+  const expected=confirmationState(state);
+  const settings={
+    correct:['حدس درست را ثبت کنیم؟',`مطمئنی ${nameOf(state.turn?.playerId)} درست حدس زده؟ این نوبت با ${fa(state.turn?.remaining)} امتیاز تمام می‌شود.`,'بله، درست حدس زد'],
+    failed:['پایان ناموفق را ثبت کنیم؟','مطمئنی جواب پیدا نشده؟ این نوبت با صفر امتیاز تمام می‌شود.','بله، پایان ناموفق'],
+    reset:['از اول شروع کنیم؟','کارت‌ها و امتیازهای این بازی پاک می‌شوند؛ همین جمع به لابی برمی‌گردد.','بله، بازی تازه'],
+    kick:['بازیکن حذف شود؟',`«${nameOf(data.playerId)}» از لابی حذف می‌شود.${state.phase!=='lobby'?' بازی فعلی هم تمام می‌شود و بقیه به لابی برمی‌گردند.':''}`,'بله، حذف کن'],
+    closeRoom:['لابی برای همه بسته شود؟','همه از این لابی خارج می‌شوند و برای ادامه باید لابی تازه بسازید.','بله، لابی را ببند']
+  }[name];
+  if (!await confirmSensitive(...settings) || expected!==confirmationState(state)) return;
+  if (['kick','closeRoom','reset'].includes(name)) menuOpen=false;
+  return action(name,data);
+}
 async function api(body, retry = true) {
   const started = Date.now();
   try {
@@ -33,7 +76,9 @@ async function api(body, retry = true) {
     if (data.snapshot) offset = data.snapshot.serverNow - (started + Date.now())/2;
     return data;
   } catch (error) {
-    if (retry && !error.code && navigator.onLine) return api(body, false);
+    if (retry && (!error.code || ['SERVICE_UNAVAILABLE','BUSY'].includes(error.code)) && navigator.onLine) {
+      await new Promise(resolve=>setTimeout(resolve,250));return api(body, false);
+    }
     throw error;
   } finally {
     if(body.type!=='state'){app.dataset.completedOperation=body.action??body.type;app.dataset.commandSequence=String(++commandSequence);}
@@ -51,11 +96,19 @@ function accept(next) {
     leaveLocal();toast(next.phase==='closed'?'لابی بسته شد.':'مدیر تو را از لابی حذف کرد.',false);return;
   }
   if (state && next.id === state.id && next.revision < state.revision) return;
+  if(state && next.id===state.id && next.revision===state.revision && next.generation===state.generation &&
+    state.players.every((player,index)=>player.online===next.players[index]?.online)){
+    state=next; return; // Heartbeats update clocks without replacing an open input/picker.
+  }
   if (!state || state.generation !== next.generation || state.id !== next.id) {
     draftMap = new Map(Object.entries(readStored(`forehead-drafts-${next.id}-${next.generation}`) ?? {}));
     for (const timer of saveTimers.values()) clearTimeout(timer); saveTimers.clear();
   }
+  if (state?.phase!==next.phase) menuOpen=false;
   state = next;
+  if(pendingConfirmation && pendingConfirmation.state!==confirmationState(state)){
+    dismissConfirmation();toast('وضعیت بازی تغییر کرد؛ دوباره انتخابت را بررسی کن.',false);
+  }
   document.title = guesser() && state.phase === 'playing' ? 'نوبت توست! · روی پیشونی' : 'روی پیشونی! · بیست‌سؤالی دورهمی';
   render();
 }
@@ -74,6 +127,7 @@ async function connectRoom() {
   live=transport.online;updateConnection();
 }
 function leaveLocal() {
+  dismissConfirmation();
   session = null; state = null; draftMap.clear(); menuOpen = false;
   storeValue(SESSION_KEY, null); storeValue(PENDING_KEY, null);
   transport.close();live = false; render();
@@ -181,8 +235,8 @@ function menu() {
     ${state.phase!=='lobby'?'<button class="text-button danger" data-do="reset-confirm">شروع دوبارهٔ بازی</button>':''}
     ` : '<button class="text-button" data-do="claim">مدیر قطع شده؟ مدیریت را بگیر</button>'}
     ${host()||state.you===state.creatorId?'<button class="text-button danger" data-do="close-room">بستن لابی و خروج</button>':''}
-    ${state.phase==='lobby'&&(state.you!==state.creatorId||state.players.length===1)?'<button class="text-button danger" data-do="leave">خروج از لابی</button>':'<p class="muted tiny">با همین مرورگر می‌توانی به بازی برگردی.</p>'}
-    <p class="tiny muted">گوشی ${esc(nameOf(state.creatorId))} جمع را وصل نگه می‌دارد؛ صفحهٔ بازی‌اش باز و روشن بماند.</p>
+    ${state.phase==='lobby'?'<button class="text-button danger" data-do="leave">خروج از لابی</button>':'<p class="muted tiny">با همین مرورگر می‌توانی به بازی برگردی.</p>'}
+    <p class="tiny muted">لابی مستقل از گوشی‌هاست؛ برای پیدا کردن عکس می‌توانی از صفحهٔ بازی بیرون بروی.</p>
     <p class="tiny muted">حدس درست: سؤال‌های باقی‌مانده<br>تساوی: مجموع زمان کمتر</p></aside>`;
 }
 function renderHome() {
@@ -195,11 +249,11 @@ function renderHome() {
       <label>اسمت<input name="name" id="entry-name" autocomplete="nickname" maxlength="28" placeholder="مثلاً رامین" required value="${esc(readStored(PENDING_KEY)?.name || '')}" /></label>
       ${homeTab==='create'?'<label>هر نفر چند کارت بسازد؟<div class="count-field"><input name="count" type="number" min="1" max="20" value="3" required /><span>کارت برای هر نفر</span></div></label>':`<label>کد لابی<input name="code" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9۰-۹٠-٩]{6}" placeholder="۱۲۳۴۵۶" dir="ltr" class="code-input" value="${esc(code || readStored(PENDING_KEY)?.code || '')}" required /></label>`}
       <button class="button primary full" type="submit">${homeTab==='create'?'بسازیم! ←':'بریم توی لابی ←'}</button>
-    </form>`}<div class="entry-note"><span>✦</span> بدون حساب و نصب. صفحهٔ سازندهٔ لابی باز بماند.</div></section></main><footer>بیست سؤال، یک جواب، کلی خنده.</footer></div>`;
+    </form>`}<div class="entry-note"><span>✦</span> بدون حساب و نصب؛ لابی به باز بودن گوشی سازنده وابسته نیست.</div></section></main><footer>بیست سؤال، یک جواب، کلی خنده.</footer></div>`;
 }
 function renderLobby() {
   const allReady = state.players.length>=2 && state.players.every(p=>p.ready);
-  return `<section class="stage-heading"><span class="eyebrow">اول جمع را کامل کنید</span><h1>همه رسیدن؟</h1><p>کد را بده به دوست‌ها و وقتی آماده‌ای علامت بزن.</p></section><div class="two-columns"><section class="panel">${roomStrip()}<div class="panel-heading"><h2>جمع ما</h2><span class="pill">${fa(state.players.length)} نفر</span></div>${playerList()}<button class="button ${me().ready?'secondary':'primary'} full" data-action="readyLobby" data-ready="${!me().ready}">${me().ready?'✓ آماده‌ام؛ تغییرش بده':'من آماده‌ام'}</button><p class="tiny muted">برای حفظ اتصال، صفحهٔ بازی روی گوشی ${esc(nameOf(state.creatorId))} باز و روشن بماند. وای‌فای مشترک پیشنهاد می‌شود.</p></section><section class="panel mint-panel"><h2>قانون امشب</h2><p class="muted">هر نفر همین تعداد کارت می‌نویسد و همین تعداد نوبت بازی می‌کند.</p>${host()?`<label>تعداد کارت هر نفر<div class="count-field"><input id="lobby-count" type="number" min="1" max="20" value="${state.cardsPerPlayer}"/><button class="text-button" data-do="set-count">ثبت</button></div></label>`:`<div class="big-number">${fa(state.cardsPerPlayer)}<small>کارت برای هر نفر</small></div>`}<div class="rule-lines"><p><b>۲۰</b> سؤال برای هر کارت</p><p><b>+ امتیاز</b> برای سؤال‌های باقی‌مانده</p><p><b>زمان کمتر</b> برای امتیاز مساوی</p></div>${host()?`<button class="button dark full" data-action="startWriting" ${!allReady?'disabled':''}>شروع کارت‌سازی ←</button><p class="tiny muted">${allReady?'جمع کامل است؟ می‌توانی شروع کنی.':'وقتی حداقل دو نفر و همه آماده باشند، فعال می‌شود.'}</p>`:`<div class="notice">${allReady?'همه آماده‌اند؛ منتظر شروع مدیر هستیم.':'منتظر کامل‌شدن جمع هستیم.'}</div>`}</section></div>`;
+  return `<section class="stage-heading"><span class="eyebrow">اول جمع را کامل کنید</span><h1>همه رسیدن؟</h1><p>کد را بده به دوست‌ها و وقتی آماده‌ای علامت بزن.</p></section><div class="two-columns"><section class="panel">${roomStrip()}<div class="panel-heading"><h2>جمع ما</h2><span class="pill">${fa(state.players.length)} نفر</span></div>${playerList()}<button class="button ${me().ready?'secondary':'primary'} full" data-action="readyLobby" data-ready="${!me().ready}">${me().ready?'✓ آماده‌ام؛ تغییرش بده':'من آماده‌ام'}</button><p class="tiny muted">لابی به گوشی سازنده وابسته نیست؛ برای پیدا کردن عکس می‌توانی از بازی بیرون بروی.</p></section><section class="panel mint-panel"><h2>قانون امشب</h2><p class="muted">هر نفر همین تعداد کارت می‌نویسد و همین تعداد نوبت بازی می‌کند.</p>${host()?`<label>تعداد کارت هر نفر<div class="count-field"><input id="lobby-count" type="number" min="1" max="20" value="${state.cardsPerPlayer}"/><button class="text-button" data-do="set-count">ثبت</button></div></label>`:`<div class="big-number">${fa(state.cardsPerPlayer)}<small>کارت برای هر نفر</small></div>`}<div class="rule-lines"><p><b>۲۰</b> سؤال برای هر کارت</p><p><b>+ امتیاز</b> برای سؤال‌های باقی‌مانده</p><p><b>زمان کمتر</b> برای امتیاز مساوی</p></div>${host()?`<button class="button dark full" data-action="startWriting" ${!allReady?'disabled':''}>شروع کارت‌سازی ←</button><p class="tiny muted">${allReady?'جمع کامل است؟ می‌توانی شروع کنی.':'وقتی حداقل دو نفر و همه آماده باشند، فعال می‌شود.'}</p>`:`<div class="notice">${allReady?'همه آماده‌اند؛ منتظر شروع مدیر هستیم.':'منتظر کامل‌شدن جمع هستیم.'}</div>`}</section></div>`;
 }
 function renderWriting() {
   const ready = me().ready;
@@ -242,7 +296,7 @@ function render() {
   for (const input of app.querySelectorAll('input[data-photo]')) {
     input.addEventListener('change',()=>upload(input.dataset.photo,input.files[0]));
   }
-  if (focusId) {
+  if (focusId && !pendingConfirmation) {
     const target = document.getElementById(focusId);
     if (target && !target.disabled) { target.focus({ preventScroll:true }); if (selection && selection[0]!==null) { try { target.setSelectionRange(...selection); } catch {} } }
   }
@@ -292,23 +346,26 @@ app.addEventListener('click',async event=>{
   if(button.dataset.tab){homeTab=button.dataset.tab;render();return;}
   const name=button.dataset.action, command=button.dataset.do;
   try {
-    if(name){await stayAwake();await action(name,name==='readyLobby'?{ready:button.dataset.ready==='true'}:{});return;}
+    if(name){
+      await stayAwake();
+      if(['correct','failed','reset'].includes(name))await sensitiveAction(name,name==='reset'?{confirm:true}:{});
+      else await action(name,name==='readyLobby'?{ready:button.dataset.ready==='true'}:{});
+      return;
+    }
     if(command==='menu'){menuOpen=!menuOpen;render();}
     if(command==='invite')await invite();
     if(command==='set-count')await action('setCount',{count:$('#lobby-count').value});
     if(command==='cards-ready')await readyCards();
     if(command==='remove-photo')await action('removeImage',{cardId:button.dataset.cardId});
     if(command==='transfer'){const id=$('#host-target').value;if(id){await action('transferHost',{playerId:id});menuOpen=false;render();}}
-    if(command==='claim')await action('claimHost');
+    if(command==='claim'){await action('claimHost');menuOpen=false;render();}
     if(command==='leave')await action('leave');
     if(command==='kick'){
       const id=$('#kick-target').value, restarting=state.phase!=='lobby';
-      if(id&&confirm(`«${nameOf(id)}» از لابی حذف شود؟${restarting?' بازی فعلی تمام می‌شود و بقیه به لابی برمی‌گردند.':''}`)){
-        menuOpen=false;await action('kick',{playerId:id,confirm:restarting});
-      }
+      if(id)await sensitiveAction('kick',{playerId:id,confirm:restarting});
     }
-    if(command==='close-room'&&confirm('لابی برای همه بسته شود و خارج شوی؟'))await action('closeRoom');
-    if(command==='reset-confirm' && confirm('این بازی تمام شود و با کارت‌های تازه از اول شروع کنیم؟')){menuOpen=false;await action('reset',{confirm:true});}
+    if(command==='close-room')await sensitiveAction('closeRoom');
+    if(command==='reset-confirm')await sensitiveAction('reset',{confirm:true});
     if(command==='fullscreen'){try{await document.documentElement.requestFullscreen?.();}catch{}await stayAwake();}
     if(command==='retry-setup')await initialize();
   } catch { /* Action already showed the specific error. */ }
@@ -321,7 +378,7 @@ transport.onSnapshot(next=>{lastContact=Date.now();accept(next);});
 transport.onStatus(connected=>{live=connected;updateConnection();});
 async function initialize() {
   try {
-    config={transport:'peer'};setupError='';
+    config=await api({type:'config'});setupError='';
     if(session){await sync(false);if(session){await connectRoom();await stayAwake();}}
     else {
       const pending=readStored(PENDING_KEY);
@@ -331,5 +388,5 @@ async function initialize() {
   }catch(error){setupError=error.message || 'اینترنت یا اتصال بازی را بررسی کنید.';render();}
 }
 setInterval(tick,100);
-setInterval(()=>{if(session && document.visibilityState==='visible')sync();updateConnection();},7000);
+setInterval(()=>{if(session && document.visibilityState==='visible')sync();updateConnection();},1600);
 initialize();

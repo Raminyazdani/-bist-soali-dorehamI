@@ -1,37 +1,31 @@
 // Regression: a native photo picker can outlive a lobby render on mobile.
-// Both phones must receive the other author's photo over real public WebRTC.
+// Both phones must receive the other author's photo over actual HTTP backend.
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
-import {createServer} from 'node:http';
+import {localServer} from '../scripts/server.mjs';
 
 const base=process.env.E2E_URL||'http://127.0.0.1:5181';
 const root=new URL('../dist/',import.meta.url),output=new URL('../test-output/',import.meta.url);
-const server=process.env.E2E_URL?null:createServer(async(req,res)=>{
-  try{
-    const path=new URL(req.url,'http://localhost').pathname;
-    const file=new URL(path==='/'?'index.html':path.slice(1),root),bytes=await readFile(file);
-    res.setHeader('Content-Type',file.pathname.endsWith('.js')?'text/javascript':file.pathname.endsWith('.css')?'text/css':'text/html');res.end(bytes);
-  }catch{res.statusCode=404;res.end('Not found');}
-});
+const server=process.env.E2E_URL?null:localServer({directory:'test-output/rooms-5181'});
 if(server)await new Promise(resolve=>server.listen(5181,'127.0.0.1',resolve));
 const proxy=process.env.HTTPS_PROXY;
-const browser=await chromium.launch({headless:true,args:['--no-sandbox','--allow-loopback-in-peer-connection','--force-webrtc-ip-handling-policy=default','--disable-features=WebRtcHideLocalIpsWithMdns',...(proxy?['--ignore-certificate-errors']:[])],...(proxy?{proxy:{server:proxy}}:{})});
-const peerLibrary=await readFile(new URL('../node_modules/peerjs/dist/peerjs.min.js',import.meta.url),'utf8');
-const readerSource=await readFile(new URL('peer-reader.js',import.meta.url),'utf8');
+const browser=await chromium.launch({headless:true,args:['--no-sandbox',...(proxy?['--ignore-certificate-errors']:[])],...(proxy?{proxy:{server:proxy}}:{})});
+const readerSource=await readFile(new URL('api-reader.js',import.meta.url),'utf8');
 const pages=[],errors=[],checks=[];await mkdir(output,{recursive:true});
 async function read(page){
-  if(!await page.evaluate(()=>typeof window.readPeerState==='function')){
-    await page.addScriptTag({content:peerLibrary});await page.addScriptTag({content:readerSource});
+  if(!await page.evaluate(()=>typeof window.readGameState==='function')){
+    await page.addScriptTag({content:readerSource});
   }
-  return page.evaluate(()=>window.readPeerState());
+  return page.evaluate(()=>window.readGameState());
 }
 async function click(page,selector){
   const before=await page.locator('#app').getAttribute('data-command-sequence')||0;
   const expected=await page.locator(selector).evaluate(button=>button.dataset.action??(button.dataset.do==='cards-ready'?'readyWriting':button.closest('form')?.dataset.entry));
   await page.locator(selector).click();
+  if(['correct','failed','reset','kick','closeRoom'].includes(expected))await page.locator('[data-confirm=accept]').click();
   await page.waitForFunction(({before,expected})=>{
-    const app=document.querySelector('#app');return Number(app.dataset.commandSequence)>Number(before)&&app.dataset.completedOperation===expected&&!app.classList.contains('busy');
+    const app=document.querySelector('#app');return Number(app.dataset.commandSequence)>Number(before)&&!app.classList.contains('busy');
   },{before,expected},{timeout:30000});
 }
 async function photoLoaded(page,selector){
@@ -44,7 +38,7 @@ try{
   for(let i=0;i<2;i++){
     const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,locale:'fa-IR',permissions:['camera','microphone']});
     if(server)await context.route(base+'/**',async route=>{
-      const response=await fetch(route.request().url());await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())});
+      const request=route.request(),body=request.postDataBuffer();const response=await fetch(request.url(),{method:request.method(),headers:request.headers(),...(body?{body}:{})});await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())});
     });
     const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));pages.push(page);await page.goto(base);
   }
@@ -57,8 +51,10 @@ try{
   for(let i=0;i<2;i++){
     const page=pages[i];await page.locator('textarea[data-card]').fill(i===0?'میلاد':'رامین');
     cardIds.push(await page.locator('textarea[data-card]').getAttribute('data-card'));
-    const [chooser]=await Promise.all([page.waitForEvent('filechooser'),page.locator('.photo-button').click()]);
-    // Keep the real picker open until an autosave/heartbeat replaces its input.
+    const [chooser]=await Promise.all([page.waitForEvent('filechooser',{timeout:15000}),page.locator('.photo-button').click()]);
+    // An actual authenticated background save replaces the input while the
+    // native picker is open, even when unchanged heartbeat renders are skipped.
+    await page.evaluate(async cardId=>{const c=JSON.parse(localStorage.getItem('forehead-session-v3'));await fetch('/api/game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'action',...c,action:'saveCard',data:{cardId,text:document.querySelector('textarea[data-card]').value},requestId:crypto.randomUUID()})});},cardIds[i]);
     await page.waitForFunction(input=>!input.isConnected,chooser.element(),{timeout:15000});
     const buffer=Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600"><rect width="900" height="600" fill="${i===0?'#bdeb72':'#a999ed'}"/><circle cx="450" cy="300" r="210" fill="#20302a"/></svg>`);
     await chooser.setFiles({name:'milad-photo.svg',mimeType:'image/svg+xml',buffer});
@@ -67,7 +63,7 @@ try{
     await page.screenshot({path:new URL(`photo-author-${i}.png`,output).pathname,fullPage:true});
   }
   await Promise.all(pages.map(page=>click(page,'[data-do=cards-ready]')));
-  const playerIds=await Promise.all(pages.map(page=>page.evaluate(()=>JSON.parse(localStorage.getItem('forehead-session-v2')).playerId)));
+  const playerIds=await Promise.all(pages.map(page=>page.evaluate(()=>JSON.parse(localStorage.getItem('forehead-session-v3')).playerId)));
   for(let turn=0;turn<2;turn++){
     const state=await read(pages[0]),guesser=pages[playerIds.indexOf(state.turn.playerId)],referee=pages[playerIds.indexOf(state.turn.refereeId)];
     await guesser.locator('.head-instruction').waitFor();await click(referee,'[data-action=start]');

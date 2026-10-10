@@ -1,3 +1,19 @@
+# Host-independent upgrade — feature branch, not merged
+
+Branch: fix/independent-lobby-host. Base master: 9940265e51e619109cf06830dd76756dc4f26770. User explicitly said to finish the fix first and wait for their instruction before merging. Do not update master or publish/promote this upgrade to the stable game URL.
+
+Implemented Vercel Functions + private Vercel Blob as the authoritative room/photo backend. Each phone sends authenticated HTTP requests independently; the original creator can leave the page without blocking others. Polls synchronize about every 1.6 seconds without replacing unchanged UI inputs. Creator can leave a lobby without closing it; logical management transfers normally. Existing scoring, readiness, private cards, timer/pause and admin rules are retained. The user also reported concentrated author pairs and accidental result taps: dealing now balances each recipient across every other author, with random card/order shuffles; correct, failed, reset, kick and closeRoom use an accessible native dialog with explicit confirmation, cancel/Escape, and stale-state dismissal. Question, undo and ordinary controls stay immediate. New v3 browser session keys deliberately start fresh rooms rather than accidentally resuming a peer-hosted room.
+
+Current local verification: 31 rule/service/HTTP/storage tests pass; build passes; real 4-player/12-turn HTTP browser game and 2-player photo picker regression pass; 3-player lobby kick/close regression passes. Background checks already passed creator-unloaded writing/photo saves, 48-second absence/management claim, and fresh-server restoration; its last complete run encountered a retained menu overlay before starting a turn. Fixed menus to close on phase changes and management claim. Full updated browser runs (including confirmation cancellation and diverse hands) are pending after the latest edits. Local browser/HTTP tests use durable disk, never a fake player host. Do not claim private Blob or hosted preview was tested yet.
+
+Provisioning blocker: native Vercel create_storage_stores_blob returns 403 forbidden, with and without the explicit projectId. No Blob store was created, no token was obtained, no Production environment was changed. The current native connector cannot create this storage resource. A Vercel browser tab at the storage page redirects to sign-in; browserAuth documentation is read, but no sign-in values were read/entered and no auth request has been issued yet. Complete source/review checkpoint, then use secure browserAuth to obtain login and finish the private store/Preview-only environment setup if possible. Never ask for passwords/OTP in chat. Keep the existing live game untouched. No CLI Vercel credentials are available.
+
+Target project: rooye-pishooni / prj_5ZbepebkVmFbJdiLzdiWlsArSypK, team team_t1y5QDuakPdppOy5zuZLx66A. Stable game: https://rooye-pishooni.vercel.app/. Connect a PRIVATE Blob store and BLOB_READ_WRITE_TOKEN to Preview for this branch first, then run E2E_URL on the preview. Production configuration and merge wait for the user. If sign-in cannot be completed, return the tested draft branch with the concrete hosted-verification blocker.
+
+Use npm ci; npm run build; npm test; node test/browser-e2e.mjs; node test/photo-e2e.mjs; node test/lobby-e2e.mjs; node test/background-e2e.mjs. npm run dev serves the built app and real local API with durable disk in test-output/dev-rooms. API files are api/game.js and api/photo.js. Production never falls back to disk or a player's phone. The records below describe earlier shipped peer-hosted versions, not the feature branch architecture.
+
+---
+
 # Resume checkpoint — 2026-10-10
 
 Playable game: https://rooye-pishooni.vercel.app/

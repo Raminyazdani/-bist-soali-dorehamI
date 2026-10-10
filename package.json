@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",
-    "buffer": "^6.0.3",
-    "peerjs": "^1.5.5"
+    "@vercel/blob": "^2.8.1",
+    "buffer": "^6.0.3"
   },
   "devDependencies": {
     "playwright": "^1.56.1",
