@@ -12,7 +12,7 @@ Vercel static hosting + public PeerJS signaling + encrypted native WebRTC. The o
 
 ## Verification
 
-19 core/service tests pass and production build passes. Actual public-cloud WebRTC E2E passed with four isolated mobile browser contexts and 12 turns at the hosted URL. It covers a real large photo, no own/duplicate deal, readiness, 20-question failure, undo, pause, guest reload, creator reload/recovery, final scores and replay. No uncaught browser errors or horizontal overflow. The final expanded local run also passed leave/recreate and late-snapshot cleanup. Final release deployment is being checked with the same hosted test; record its result in VERIFICATION.md.
+19 core/service tests pass and production build passes. Actual public-cloud WebRTC E2E passed with four isolated mobile browser contexts and 12 turns at the hosted URL. It covers a real large photo, no own/duplicate deal, readiness, 20-question failure, undo, pause, guest reload, creator reload/recovery, final scores and replay. No uncaught browser errors or horizontal overflow. The final expanded local run also passed leave/recreate and late-snapshot cleanup. Final release deployment also passed the same hosted test, including leave/recreate. Full evidence is recorded in VERIFICATION.md. The game is complete and delivered; no outstanding setup or checks.
 
 Test setup only: this runner has loopback interfaces, requiring Chromium allow-loopback and granted media permissions for ICE. The application itself never requests microphone/camera permissions. Test observers make authenticated peer RPCs over the actual network, without reading private host state or mocking signaling.
 

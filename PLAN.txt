@@ -41,6 +41,8 @@ Work
 Explicit exclusions: email login, payments, AI card generation, analytics,
 marketing pages, leaderboards across rooms, database accounts and CI pipeline.
 
-Release checkpoint: real hosted four-player/12-turn test passed. Expanded local
-photo, creator recovery, leave/recreate and final build passed. Finish final
-GitHub sync, deploy lifecycle fixes, verify hosted release, then deliver URL.
+Release complete: all five work items finished. Production source 1099f190
+passed 19 core tests, build and the actual hosted four-player/12-turn WebRTC
+flow including photo, creator recovery, leave/recreate and replay. Stable
+URL: https://rooye-pishooni.vercel.app/. Final source and verification are
+persisted in the user's GitHub repository. No setup remains.
