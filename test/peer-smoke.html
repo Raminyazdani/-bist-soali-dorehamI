@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body><script type="module">
+import Peer from 'peerjs';
+window.makePeer = async (id) => {
+  const p = new Peer(id, {debug: 1});
+  window.peer = p;
+  p.on('connection', c => {c.on('data', data => c.send(data)); c.on('error', e => console.error(e));});
+  return await new Promise((resolve, reject) => {p.on('open', resolve); p.on('error', reject); setTimeout(() => reject(Error('Peer cloud timeout')), 25000);});
+};
+window.echo = async id => {
+  const c = window.peer.connect(id, {reliable:true});
+  return await new Promise((resolve, reject) => {
+    c.on('open', () => c.send({text:'سلام از اتصال واقعی', bytes: new Uint8Array(500000).fill(42)}));
+    c.on('data', d => resolve({text:d.text, size:d.bytes.byteLength, last:new Uint8Array(d.bytes)[499999]}));
+    c.on('error', reject);
+    setTimeout(() => reject(Error('WebRTC data timeout')), 25000);
+  });
+};
+</script></body></html>

@@ -1,0 +1,42 @@
+FOREHEAD / روی پیشونی — implementation plan, 2026-10-10
+
+Goal: a complete Persian mobile party game usable today, deployed to the user's
+new Vercel project bist-soali-dorehami. No signup UI, no laptop while playing.
+Vercel static hosting + public PeerJS signaling + encrypted WebRTC. The creator
+phone is authoritative and persists rooms/photos in IndexedDB. No extra account
+or service key. Creator page must remain open; shared Wi-Fi recommended.
+
+Rules
+- Host chooses 1–20 cards per player; 2–12 players enter a six-digit room code.
+- Everyone marks ready; host explicitly starts writing once everyone is present.
+- Each author completes exactly N cards, mandatory text and optional photo.
+- All ready locks cards, creates a random player order and constrained dealing.
+- N complete cycles of the same player order. Every card is used exactly once;
+  nobody receives their own card; each player receives N cards.
+- Next player is referee, with a host override that cannot make the guesser referee.
+- Start uses a three-second preparation countdown before the timer runs.
+- Referee counts every question, including a direct guess, out of 20.
+- At zero the final answer may still be judged correct (0 points) or failed.
+- Correct = remaining questions; failed = 0. Rank by total points descending,
+  total completed-turn time ascending; identical totals share a rank.
+- One-step question undo, pause/resume, full reconnect, host transfer, replay.
+- Future cards stay private; whole deck with authors is visible after completion.
+
+Architecture
+- Browser: Vite, plain JS/CSS, PeerJS, portable shared reducer and service.
+- Creator phone: one serialized request queue, revision checks, idempotency IDs.
+- IndexedDB: durable rooms plus separate photos; network sends view projections.
+- Public PeerJS cloud performs signaling; game data uses native WebRTC channels.
+- Stable credentials restore guests. Creator reload restores and pauses the turn.
+- Only current/own writing cards are sent, with image transfer caching per peer.
+
+Work
+1. Prove real public signaling + large encrypted native data transfer (done).
+2. Reuse tested rules, implement peer authority, persistence and mobile UI (in progress).
+3. Test complete 4-player mobile flow, 12 turns, photos, concurrent ready, reconnect,
+   creator recovery, scoreboard and replay with the actual public transport.
+4. Deploy on Vercel; verify hosted URL with multiple clients.
+5. Persist checkpoints and final source in user's exact GitHub repository.
+
+Explicit exclusions: email login, payments, AI card generation, analytics,
+marketing pages, leaderboards across rooms, database accounts and CI pipeline.
