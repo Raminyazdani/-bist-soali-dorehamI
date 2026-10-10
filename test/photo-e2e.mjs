@@ -69,7 +69,9 @@ try{
     await guesser.locator('.head-instruction').waitFor();await click(referee,'[data-action=start]');
     await guesser.locator('.head-card:not(.hidden)').waitFor({timeout:15000});
     await photoLoaded(guesser,'.head-card img');await photoLoaded(referee,'.card-stage img');
-    const current=await read(referee);assert.notEqual(current.turn.card.authorId,current.turn.playerId);
+    const current=await read(referee);
+    assert.equal(current.phase,'playing',JSON.stringify({phase:current.phase,id:current.id,uiPhase:await referee.locator('#app').getAttribute('data-phase')}));
+    assert.notEqual(current.turn.card.authorId,current.turn.playerId);
     assert.equal(current.turn.card.id,cardIds[1-playerIds.indexOf(state.turn.playerId)]);
     await guesser.setViewportSize({width:844,height:390});
     assert.equal(await guesser.locator('.head-card img').isVisible(),true);

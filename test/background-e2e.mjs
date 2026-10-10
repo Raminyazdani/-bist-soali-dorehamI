@@ -66,6 +66,7 @@ try{
     assert.equal((await read(page)).ownCards[0].text,text);
   }
   checks.push('both guests save real text and uploaded photos while the creator app is fully unloaded');
+  console.log(checks.at(-1));
   await new Promise(resolve=>setTimeout(resolve,Math.max(0,48000-(Date.now()-frozenAt))));
   const absent=await read(amin);assert.equal(absent.players.find(p=>p.id===first.you).online,false);
   await amin.locator('textarea[data-card]').fill('میلادِ ما');
@@ -73,6 +74,7 @@ try{
   await menu(amin);await click(amin,'[data-do=claim]');
   assert.equal((await read(amin)).hostId,absent.you);
   checks.push('after 48 seconds away, cards still save and another player can take management');
+  console.log(checks.at(-1));
   await creator.goto(base);
   await creator.locator('textarea[data-card]').fill('امین');
   await Promise.all(pages.map(page=>click(page,'[data-do=cards-ready]')));
@@ -98,7 +100,14 @@ try{
   }
   assert.equal(awayTurn,true);
   await Promise.all(pages.map(page=>page.locator('.scoreboard').waitFor()));
-  for(const page of pages){assert.equal(await page.locator('.summary-card img').count(),2);for(const image of await page.locator('.summary-card img').all()){await image.scrollIntoViewIfNeeded();await image.evaluate(image=>image.decode());assert.equal(await image.evaluate(image=>image.naturalWidth>0),true);}}
+  for(const page of pages){
+    await page.locator('.deck-summary summary').click();
+    assert.equal(await page.locator('.summary-card img').count(),2);
+    for(const image of await page.locator('.summary-card img').all()){
+      await image.scrollIntoViewIfNeeded({timeout:15000});await image.evaluate(image=>image.decode());
+      assert.equal(await image.evaluate(image=>image.naturalWidth>0),true);
+    }
+  }
   checks.push('all three players finish and receive the complete scoreboard and photos');
   assert.deepEqual(errors,[]);
   await writeFile(new URL('background-results.json',output),JSON.stringify({passed:true,base,checks,errors,hostedBuild:Boolean(process.env.E2E_URL)},null,2));console.log(JSON.stringify({passed:true,checks},null,2));

@@ -1,3 +1,51 @@
+# Unmerged server/dealing/confirmation upgrade — 2026-10-10T22:18:28.651527+00:00
+
+Runtime source: 75063babd6ba36c8d74c939255724cde6596e508; feature branch `fix/independent-lobby-host`; draft PR #1. Production/master are unchanged. The final source checkpoint adds only test diagnostics and these records.
+
+`npm test`: 32 passed, 0 failed. Matrix covers 2–12 players, 1/2/3/5/20 cards, 20 seeds, unique cards, no own cards and even author counts. The reported four-person/three-card case gets exactly one card from each other author and varied deals between random seeds. HTTP tests use a fresh request-local BlobStore with a durable disk SDK adapter; 12 simultaneous joins/readiness/card writes, persisted private photos, fresh-server recovery, creator leaving and idempotent lost-response retries pass.
+
+`npm run build`: PASS. Client JavaScript 33.69 kB (11.86 kB gzip), no PeerJS dependency.
+
+Final browser checks use actual HTTP, isolated mobile contexts and real uploaded image bytes. Production has no disk or in-memory fallback.
+
+- browser: PASS; 12 checks; 0 browser errors.
+  - 4 mobile browsers join with a six-digit code and mark ready
+  - empty required card text is rejected in the actual UI/API
+  - browser photo compression, durable server storage and authenticated rendered photo
+  - accidental correct tap opens confirmation; cancel and Escape leave score and turn unchanged
+  - landscape overhead view; undo; pause freezes time; player reload retains identity
+  - creator reload preserves the durable room without stopping the group
+  - failure needs confirmation; question and undo stay immediate
+  - each of the four players receives exactly one card from each of the other three authors
+  - 12 turns; each card used exactly once; no own card dealt; scores and final scoreboard correct
+  - replay returns all 4 players to a clean lobby
+  - all players can leave after replay and create an independent fresh lobby
+  - no uncaught browser errors or horizontal overflow in tested mobile views
+- photo: PASS; 6 checks; 0 browser errors.
+  - creator photo selection survives autosave/heartbeat while native picker is open
+  - guest photo selection survives autosave/heartbeat while native picker is open
+  - turn 1: other author's photo rendered on recipient and referee, including landscape view
+  - recipient reload retrieves the current photo again
+  - turn 2: other author's photo rendered on recipient and referee, including landscape view
+  - both photos remain on completed cards and scoreboard for both players
+- lobby: PASS; 4 checks; 0 browser errors.
+  - manager kicks a lobby guest and the guest returns home immediately
+  - confirmed mid-game kick resets remaining players to a clean two-person lobby
+  - original creator can close after transferring management; all connected players return home
+  - transferred manager can close; original host leaves cleanly; a fresh independent lobby works
+- background: PASS; 5 checks; 0 browser errors.
+  - both guests save real text and uploaded photos while the creator app is fully unloaded
+  - after 48 seconds away, cards still save and another player can take management
+  - a fresh server reloads the room and photos from disk without a creator connection
+  - the creator can remain away during other players turn; time, questions and scoring keep working
+  - all three players finish and receive the complete scoreboard and photos
+
+The photo regression's final standalone run passes. An earlier concurrent run failed when the observer returned an intermediate writing snapshot; the observer now reports phase/UI context if this recurs. The creator-away runner was corrected to open the collapsed completed-card list before checking lazy images, and the final full run passes.
+
+Hosted verification is PENDING: the native Vercel connector returns 403 on private Blob creation (also with explicit project ID), so no store/token/Production setting was changed. Browser fallback currently displays Vercel sign-in. The feature preview builds successfully but cannot create a room without its server token. Provision PRIVATE Blob for this preview, then run selected E2E on that exact deployment before claiming hosted success. Merge/promotion require the user's explicit instruction.
+
+---
+
 # Verified release
 
 Verified at 2026-10-10T20:43:23.759915+00:00.
