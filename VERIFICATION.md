@@ -3,6 +3,7 @@
 The user now authorizes public GitHub/Vercel release after verification. Windows superprompt skill was unavailable; the execution brief is docs/SUPERPROMPT.md. This checkpoint does not claim a successful hosted backend test.
 
 - `npm test`: **40 passed, 0 failed**. Includes dealing property matrix, scoring/ties and pauses, actual HTTP/private-photo access, 12 concurrent players, lost-response recovery, fresh-server persistence, quotas under concurrency and retries, same-origin/JSON guards, scoped photo proofs and expiry/generation checks, authenticated cron and conditional cleanup protecting live games.
+- GitHub Checks run `38183579795`: completed / success on runtime commit `90262609393b7c67e30100c8685fd2cbb68290bc`; pinned official checkout/setup-node v6, Node 24, npm ci/test/build.
 - `npm run build`: PASS. Public guide, metadata, robots, sitemap, manifest and icon are included. No server keys are bundled into the client.
 - `npm audit`: 0 reported vulnerabilities. Source scan found no service tokens or private keys.
 - `node test/browser-e2e.mjs`: PASS, 4 mobile contexts / 12 turns / 12 checks / 0 browser errors. Each hand has all three other authors; question/undo are immediate; result confirmation cancels correctly; reconnect, scoring, scoreboard and replay pass.
