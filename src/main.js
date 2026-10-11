@@ -89,6 +89,16 @@ function saveDrafts() {
   if (!state) return;
   storeValue(`forehead-drafts-${state.id}-${state.generation}`, Object.fromEntries(draftMap));
 }
+function renewPhotoLinks(next) {
+  const cards=[...(next.ownCards??[]),next.turn?.card,...(next.completedCards??[]).map(result=>result.card)].filter(Boolean);
+  const links=new Map(cards.filter(card=>card.imageUrl).map(card=>[new URL(card.imageUrl,location.href).searchParams.get('path'),card.imageUrl]));
+  for(const img of app.querySelectorAll('img')){
+    const current=new URL(img.getAttribute('src'),location.href);
+    if(current.pathname!=='/api/photo'||(Number(current.searchParams.get('expires'))>next.serverNow+120000&&(!img.complete||img.naturalWidth>0)))continue;
+    const fresh=links.get(current.searchParams.get('path'));
+    if(fresh&&fresh!==img.getAttribute('src'))img.setAttribute('src',fresh);
+  }
+}
 function accept(next) {
   if(!session||next.id!==session.roomId||next.you!==session.playerId)return;
   if(next.phase==='closed'||next.phase==='removed'){
@@ -98,7 +108,7 @@ function accept(next) {
   if (state && next.id === state.id && next.revision < state.revision) return;
   if(state && next.id===state.id && next.revision===state.revision && next.generation===state.generation &&
     state.players.every((player,index)=>player.online===next.players[index]?.online)){
-    state=next; return; // Heartbeats update clocks without replacing an open input/picker.
+    state=next;renewPhotoLinks(next);return; // Keep inputs/pickers, but renew expiring photo links.
   }
   if (!state || state.generation !== next.generation || state.id !== next.id) {
     draftMap = new Map(Object.entries(readStored(`forehead-drafts-${next.id}-${next.generation}`) ?? {}));
@@ -239,6 +249,12 @@ function menu() {
     <p class="tiny muted">لابی مستقل از گوشی‌هاست؛ برای پیدا کردن عکس می‌توانی از صفحهٔ بازی بیرون بروی.</p>
     <p class="tiny muted">حدس درست: سؤال‌های باقی‌مانده<br>تساوی: مجموع زمان کمتر</p></aside>`;
 }
+function gameGuide() {
+  return `<details class="game-guide"><summary>چطور بازی کنیم؟ · دربارهٔ اطلاعات لابی</summary><div><ol><li>۲ تا ۱۲ نفر جمع شوید. یکی لابی می‌سازد و کد یا لینک را به بقیه می‌دهد. همه «آماده‌ام» را می‌زنند.</li><li>هر نفر به تعداد تعیین‌شده کارت می‌نویسد؛ متن لازم است و عکس اختیاری. با آمادگی همه، کارت‌ها تقسیم می‌شوند؛ کارت خودت به تو نمی‌رسد.</li><li>وقتی نوبتت شد، گوشی را بالای سرت و رو به بقیه بگیر. داور شروع را می‌زند و هر سؤال یا حدس را یک بار ثبت می‌کند. جواب آخر بعد از سؤال بیستم هم قابل ثبت است.</li><li>حدس درست به تعداد سؤال‌های باقی‌مانده امتیاز دارد؛ شکست صفر. در امتیاز مساوی، مجموع زمان همهٔ نوبت‌ها کمتر بهتر است. مکث و شمارش معکوس حساب نمی‌شوند.</li><li>در پایان، امتیازها و نویسندهٔ کارت‌ها را ببینید و اگر خواستید با همان جمع بازی تازه‌ای شروع کنید.</li></ol><p>اینترنت لازم است؛ نصب و حساب لازم نیست. بیرون رفتن سازنده برای پیدا کردن عکس، بازی بقیه را قطع نمی‌کند. اگر بازیکن نوبت یا داور قطع شود، بازی مکث می‌شود.</p><p>اسم‌ها، متن‌ها و عکس‌ها فقط برای لابی ذخیره می‌شوند. کارت‌های آینده برای بقیه پنهان‌اند و عکس‌ها لینک عمومی دائمی ندارند. هرکس کد لابی را داشته باشد، تا پیش از شروع می‌تواند وارد شود؛ کد را فقط به جمع خودتان بدهید.</p><p>لابی تا ۲۴ ساعت بعد از ساخت معتبر است. داده‌های منقضی به‌صورت دوره‌ای پاک می‌شوند. ورود همین مرورگر برای برگشت به بازی روی گوشی‌ات ذخیره می‌شود.</p></div></details>`;
+}
+function gameFooter(text='بیست سؤال، یک جواب، کلی خنده.') {
+  return `<footer><span>${text}</span><a href="https://github.com/Raminyazdani/-bist-soali-dorehamI" target="_blank" rel="noopener noreferrer">کد و گزارش مشکل در گیت‌هاب ↗</a></footer>`;
+}
 function renderHome() {
   const code = digits(new URL(location.href).searchParams.get('room') || '');
   return `<div class="shell home-shell"><header>${brand()}<span class="top-tag">بازی برای دورهمی</span></header>
@@ -249,7 +265,7 @@ function renderHome() {
       <label>اسمت<input name="name" id="entry-name" autocomplete="nickname" maxlength="28" placeholder="مثلاً رامین" required value="${esc(readStored(PENDING_KEY)?.name || '')}" /></label>
       ${homeTab==='create'?'<label>هر نفر چند کارت بسازد؟<div class="count-field"><input name="count" type="number" min="1" max="20" value="3" required /><span>کارت برای هر نفر</span></div></label>':`<label>کد لابی<input name="code" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9۰-۹٠-٩]{6}" placeholder="۱۲۳۴۵۶" dir="ltr" class="code-input" value="${esc(code || readStored(PENDING_KEY)?.code || '')}" required /></label>`}
       <button class="button primary full" type="submit">${homeTab==='create'?'بسازیم! ←':'بریم توی لابی ←'}</button>
-    </form>`}<div class="entry-note"><span>✦</span> بدون حساب و نصب؛ لابی به باز بودن گوشی سازنده وابسته نیست.</div></section></main><footer>بیست سؤال، یک جواب، کلی خنده.</footer></div>`;
+    </form>`}<div class="entry-note"><span>✦</span> بدون حساب و نصب؛ لابی به باز بودن گوشی سازنده وابسته نیست.</div></section></main>${gameGuide()}${gameFooter()}</div>`;
 }
 function renderLobby() {
   const allReady = state.players.length>=2 && state.players.every(p=>p.ready);
@@ -290,7 +306,7 @@ function render() {
   document.body.classList.toggle('head-mode', Boolean(state?.phase==='playing' && guesser() && state.turn.status!=='result'));
   if (!state) app.innerHTML = renderHome();
   else if (document.body.classList.contains('head-mode')) app.innerHTML = renderPlaying();
-  else app.innerHTML = `<div class="shell">${header()}${menu()}${stepper()}<main>${state.phase==='lobby'?renderLobby():state.phase==='writing'?renderWriting():state.phase==='playing'?renderPlaying():renderFinished()}</main><footer>${state.phase==='playing'?'هر سؤال یک قدم نزدیک‌تر.':'بیست سؤال، یک جواب، کلی خنده.'}</footer></div>`;
+  else app.innerHTML = `<div class="shell">${header()}${menu()}${stepper()}<main>${state.phase==='lobby'?renderLobby():state.phase==='writing'?renderWriting():state.phase==='playing'?renderPlaying():renderFinished()}</main>${gameFooter(state.phase==='playing'?'هر سؤال یک قدم نزدیک‌تر.':undefined)}</div>`;
   // A mobile picker can finish after a snapshot replaced this input. Keep its
   // handler on the input itself so the selection still reaches upload().
   for (const input of app.querySelectorAll('input[data-photo]')) {

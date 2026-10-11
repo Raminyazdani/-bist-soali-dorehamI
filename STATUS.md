@@ -1,3 +1,15 @@
+# Public release — latest user scope (2026-10-12, Europe/Berlin)
+
+User now wants the game publicly presented on their GitHub and Vercel. Merge/publication are authorized after tests, replacing the earlier hold. Read docs/SUPERPROMPT.md for the concrete execution brief. The linked Windows superprompt skill is not available in this environment; do not claim it ran. No subagents requested.
+
+Existing repository is already PUBLIC; GitHub admin/write access works. Remote feature head: 4b023e3eb320d225d3cbeb653af19f8b0ac7d342. Master: 9940265e51e619109cf06830dd76756dc4f26770. Draft PR #1 is available. Local tree has the complete prior fixes and final local regression evidence; Public changes are implemented: rules/privacy guide, public metadata/assets, JSON/origin guards, durable creation/join/upload limits, scoped expiring photo URLs with renewal without editor rerender, conditional daily cleanup and a pinned minimal CI workflow. Room lifetime is 24 hours (LIMITS.roomHours), not 6 hours. 40 unit/HTTP/storage/security tests and build pass; npm audit reports 0 vulnerabilities. The 4-phone/12-turn HTTP browser game passes. Photo (including signed-link renewal), lobby controls and creator-background regressions now all pass; public home was visually checked and verified at four widths. See the latest VERIFICATION.md entry. Source is ready for a GitHub checkpoint and real hosted provisioning/tests.
+
+Actual blocker: Vercel connector can inspect the project but listing its environment variables returns 403 (permission to list project environment variables denied). Prior private Blob creation also returned 403. No Vercel CLI, CLI auth files, VERCEL_* or BLOB_* runtime credentials are available. The earlier browserAuth request timed out; do not infer it submitted credentials or succeeded. The previous tab no longer exists. Fresh target-page verification shows Vercel sign-in in cloud browser tab 2. Complete all independent public-source changes and tests before requesting secure authentication again. Never ask for sign-in secrets in chat. Do not merge a backend without storage configuration.
+
+Planned public additions: clear public README/home guidance, share/search metadata, lightweight CI, bounded entry/upload requests, private photo links without session tokens, and authenticated expiration cleanup. Preserve game behavior and existing fixes. The old notes below are historical; their no-merge instruction is superseded by the latest user request.
+
+---
+
 # Host-independent upgrade — feature branch, not merged
 
 Branch: fix/independent-lobby-host. Base master: 9940265e51e619109cf06830dd76756dc4f26770. User explicitly said to finish the fix first and wait for their instruction before merging. Do not update master or publish/promote this upgrade to the stable game URL.

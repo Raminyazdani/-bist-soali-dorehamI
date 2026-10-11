@@ -8,17 +8,18 @@ import {localServer} from '../scripts/server.mjs';
 import {fileBlob} from '../scripts/file-blob.mjs';
 import {BlobStore} from '../lib/blob-store.mjs';
 import {GameService} from '../lib/service.mjs';
+import {photoLink} from '../lib/security.mjs';
 
-async function fixture(t) {
+async function fixture(t,options={}) {
   const directory=await mkdtemp(join(tmpdir(),'forehead-server-'));
   let server,base;
-  async function start() { server=localServer({directory});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base=`http://127.0.0.1:${server.address().port}`; }
+  async function start() { server=localServer({directory,...options});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base=`http://127.0.0.1:${server.address().port}`; }
   await start();t.after(async()=>{await new Promise(resolve=>server.close(resolve));await rm(directory,{recursive:true,force:true});});
   async function post(body,expected=200) {const response=await fetch(base+'/api/game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const result=await response.json();assert.equal(response.status,expected,JSON.stringify(result));return result;}
   const action=(c,action,data={},expected=200)=>post({type:'action',...c,action,data,requestId:randomUUID()},expected);
   const state=c=>post({type:'state',...c});
   const create=()=>post({type:'create',name:'رامین',cardsPerPlayer:1,roomId:randomUUID(),playerId:randomUUID(),token:'a'.repeat(32)});
-  return {post,action,state,create,base:()=>base,restart:async()=>{await new Promise(resolve=>server.close(resolve));await start();}};
+  return {post,action,state,create,directory,base:()=>base,restart:async()=>{await new Promise(resolve=>server.close(resolve));await start();}};
 }
 async function writing(f) {
   const a=await f.create(),b=await f.post({type:'join',code:a.credentials.code,name:'امین'});
@@ -45,10 +46,13 @@ test('private HTTP photos survive server restart and future photos are hidden fr
   const f=await fixture(t),[a,b]=await writing(f),card=(await f.state(b.credentials)).snapshot.ownCards[0];
   const bytes=Buffer.from([137,80,78,71,13,10,26,10,1]);
   const photo=await f.post({type:'upload',...b.credentials,cardId:card.id,base64:bytes.toString('base64'),requestId:randomUUID()});
-  const url=photo.snapshot.ownCards[0].imageUrl;assert.ok(url.startsWith('/api/photo?'));await f.restart();
+  const url=photo.snapshot.ownCards[0].imageUrl;assert.ok(url.startsWith('/api/photo?'));assert.ok(!url.includes(b.credentials.token));assert.ok(!new URL(url,'http://localhost').searchParams.has('token'));await f.restart();
   const response=await fetch(f.base()+url);assert.equal(response.status,200);assert.equal(response.headers.get('content-type'),'image/png');assert.deepEqual(Buffer.from(await response.arrayBuffer()),bytes);
-  const params=new URL(url,'http://localhost').searchParams;params.set('playerId',a.credentials.playerId);params.set('token',a.credentials.token);
-  const hidden=await fetch(f.base()+'/api/photo?'+params);assert.equal(hidden.status,403);assert.equal((await hidden.json()).code,'PHOTO_HIDDEN');
+  const params=new URL(url,'http://localhost').searchParams;params.set('playerId',a.credentials.playerId);
+  const tampered=await fetch(f.base()+'/api/photo?'+params);assert.equal(tampered.status,403);assert.equal((await tampered.json()).code,'INVALID_PHOTO');
+  const row=await new BlobStore({sdk:fileBlob(f.directory)}).get(a.credentials.roomId);
+  const hidden=await fetch(f.base()+photoLink(row.state,a.credentials.playerId,params.get('path')));assert.equal(hidden.status,403);assert.equal((await hidden.json()).code,'PHOTO_HIDDEN');
+  const expired=await fetch(f.base()+photoLink(row.state,b.credentials.playerId,params.get('path'),Date.now()-700000));assert.equal(expired.status,403);assert.equal((await expired.json()).code,'INVALID_PHOTO');
 });
 test('creator can leave a lobby without closing it; the remaining manager can admit another guest',async t=>{
   const f=await fixture(t),a=await f.create(),b=await f.post({type:'join',code:a.credentials.code,name:'امین'});
@@ -71,4 +75,31 @@ test('a lost room-upload response does not delete the committed lobby code',asyn
   await assert.rejects(()=>new GameService(new BlobStore({sdk})).create(input),/response lost/);
   const service=new GameService(new BlobStore({sdk:disk})),restored=await service.create(input);
   const guest=await service.join({name:'امین',code:restored.credentials.code});assert.equal(guest.snapshot.players.length,2);
+});
+
+test('public API rejects cross-origin and non-JSON requests, but accepts same-origin browsers',async t=>{
+  const f=await fixture(t);
+  for(const [headers,status,code] of [
+    [{'Content-Type':'application/json',Origin:'https://another-site.invalid'},403,'ORIGIN'],
+    [{'Content-Type':'text/plain'},415,'CONTENT_TYPE'],
+    [{'Content-Type':'application/json',Origin:f.base()},200,undefined]
+  ]){
+    const response=await fetch(f.base()+'/api/game',{method:'POST',headers,body:JSON.stringify({type:'config'})});
+    assert.equal(response.status,status);assert.equal((await response.json()).code,code);
+  }
+});
+test('public creation quota persists across fresh servers and room retry does not consume another slot',async t=>{
+  const f=await fixture(t),input={type:'create',name:'رامین',cardsPerPlayer:1,roomId:randomUUID(),playerId:randomUUID(),token:'q'.repeat(32)};
+  await f.post(input);await f.restart();await f.post(input);
+  for(let i=0;i<7;i++)await f.create();
+  const response=await fetch(f.base()+'/api/game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...input,roomId:randomUUID(),playerId:randomUUID()})});
+  assert.equal(response.status,429);assert.equal((await response.json()).code,'RATE_LIMIT');assert.ok(Number(response.headers.get('retry-after'))>0);
+  await f.post(input);
+});
+test('scheduled cleanup endpoint requires its secret and only runs when authenticated',async t=>{
+  const f=await fixture(t,{cleanupSecret:'local-cleanup-test'});
+  for(const authorization of [undefined,'Bearer wrong']){
+    const response=await fetch(f.base()+'/api/cleanup',{headers:authorization?{Authorization:authorization}:{}});assert.equal(response.status,401);
+  }
+  const response=await fetch(f.base()+'/api/cleanup',{headers:{Authorization:'Bearer local-cleanup-test'}});assert.equal(response.status,200);assert.deepEqual(await response.json(),{removed:0,scanned:0});
 });

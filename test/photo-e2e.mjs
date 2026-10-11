@@ -4,6 +4,9 @@ import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {localServer} from '../scripts/server.mjs';
+import {BlobStore} from '../lib/blob-store.mjs';
+import {fileBlob} from '../scripts/file-blob.mjs';
+import {photoLink} from '../lib/security.mjs';
 
 const base=process.env.E2E_URL||'http://127.0.0.1:5181';
 const root=new URL('../dist/',import.meta.url),output=new URL('../test-output/',import.meta.url);
@@ -60,6 +63,17 @@ try{
     await chooser.setFiles({name:'milad-photo.svg',mimeType:'image/svg+xml',buffer});
     await photoLoaded(page,'.editor-photo img');
     checks.push(`${i===0?'creator':'guest'} photo selection survives autosave/heartbeat while native picker is open`);
+    if(server&&i===0){
+      const credentials=await page.evaluate(()=>JSON.parse(localStorage.getItem('forehead-session-v3')));
+      const row=await new BlobStore({sdk:fileBlob('test-output/rooms-5181')}).get(credentials.roomId);
+      const path=row.state.cards.find(card=>card.authorId===credentials.playerId).imagePath;
+      const nearExpiry=photoLink(row.state,credentials.playerId,path,Date.now()-540000);
+      await page.evaluate(src=>{window.photoEditorBefore=document.querySelector('textarea');document.querySelector('.editor-photo img').setAttribute('src',src);},nearExpiry);
+      await page.waitForFunction(src=>document.querySelector('.editor-photo img')?.getAttribute('src')!==src,nearExpiry,{timeout:15000});
+      await photoLoaded(page,'.editor-photo img');
+      assert.equal(await page.evaluate(()=>window.photoEditorBefore===document.querySelector('textarea')),true);
+      checks.push('an expiring photo link renews during unchanged-state polling without replacing the editor');
+    }
     await page.screenshot({path:new URL(`photo-author-${i}.png`,output).pathname,fullPage:true});
   }
   await Promise.all(pages.map(page=>click(page,'[data-do=cards-ready]')));

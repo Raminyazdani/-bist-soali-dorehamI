@@ -1,3 +1,22 @@
+# Public release candidate — 2026-10-11T23:14:10.969186+00:00
+
+The user now authorizes public GitHub/Vercel release after verification. Windows superprompt skill was unavailable; the execution brief is docs/SUPERPROMPT.md. This checkpoint does not claim a successful hosted backend test.
+
+- `npm test`: **40 passed, 0 failed**. Includes dealing property matrix, scoring/ties and pauses, actual HTTP/private-photo access, 12 concurrent players, lost-response recovery, fresh-server persistence, quotas under concurrency and retries, same-origin/JSON guards, scoped photo proofs and expiry/generation checks, authenticated cron and conditional cleanup protecting live games.
+- `npm run build`: PASS. Public guide, metadata, robots, sitemap, manifest and icon are included. No server keys are bundled into the client.
+- `npm audit`: 0 reported vulnerabilities. Source scan found no service tokens or private keys.
+- `node test/browser-e2e.mjs`: PASS, 4 mobile contexts / 12 turns / 12 checks / 0 browser errors. Each hand has all three other authors; question/undo are immediate; result confirmation cancels correctly; reconnect, scoring, scoreboard and replay pass.
+- `node test/photo-e2e.mjs`: PASS, 2 mobile contexts / 2 turns / 7 checks / 0 browser errors. Real picker survives autosave; both photos reach recipients and referees, landscape/reload and final photos pass. A valid nearly expired photo link renews on unchanged-state polling without replacing the text editor.
+- `node test/lobby-e2e.mjs`: PASS. Lobby/play kick, transfer, creator/manager closure, leave, cancellation and rejection of former credentials are covered.
+- `node test/background-e2e.mjs`: PASS, 3 mobile contexts / 5 checks. Creator app fully unloads for 48 seconds; guests keep saving text/photos, can claim management, and the server restarts without lost data. Creator remains away during another player's active turn; timer/question/score continue; all finish with photos and scoreboard.
+- Public-home check: PASS at 320/390/768/1200px, including expanded guide, correct public links and metadata/assets. Mobile heading is readable without illustration overlap; screenshot visually inspected.
+
+All browser tests above use real HTTP requests and a **durable local disk SDK adapter**. They are not evidence that Vercel Blob is provisioned. No process-memory/phone fallback exists in production.
+
+Hosted release gate: current Vercel connector returns 403 for private Blob creation and project-environment access. No CLI credentials exist; the browser currently shows the Vercel sign-in page. The private store, Preview/Production binding and CRON_SECRET still need setup through authorized access, followed by the real hosted game tests. PR #1 remains draft; master and the old live deployment remain unchanged until this gate passes. CI is added for ongoing unit/HTTP tests and build on pull requests.
+
+---
+
 # Unmerged server/dealing/confirmation upgrade — 2026-10-10T22:18:28.651527+00:00
 
 Runtime source: 75063babd6ba36c8d74c939255724cde6596e508; feature branch `fix/independent-lobby-host`; draft PR #1. Production/master are unchanged. The final source checkpoint adds only test diagnostics and these records.

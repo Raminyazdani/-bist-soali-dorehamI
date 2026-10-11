@@ -1,6 +1,6 @@
 // Durable disk adapter for local development/tests only. Production uses the
 // real private Vercel Blob SDK; it never falls back to disk or process memory.
-import {mkdir,readFile,writeFile,rename,unlink} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,rename,unlink,readdir,stat} from 'node:fs/promises';
 import {dirname,join,resolve} from 'node:path';
 import {randomUUID,createHash} from 'node:crypto';
 const queues=new Map();
@@ -12,6 +12,20 @@ export function fileBlob(directory) {
   async function serial(fn) { const previous=queues.get(root)??Promise.resolve();const current=previous.then(fn);queues.set(root,current.catch(()=>{}));return current; }
   async function read(name) { try{return await readFile(path(name));}catch(e){if(e.code==='ENOENT')return null;throw e;} }
   return {
+    async list(options={}) {
+      const names=[];
+      async function walk(directory){
+        let entries;try{entries=await readdir(directory,{withFileTypes:true});}catch(error){if(error.code==='ENOENT')return;throw error;}
+        for(const entry of entries){
+          const target=join(directory,entry.name);
+          if(entry.isDirectory())await walk(target);
+          else if(!entry.name.endsWith('.tmp'))names.push(target.slice(root.length+1));
+        }
+      }
+      await walk(root);
+      const matching=names.filter(name=>name.startsWith(options.prefix??'')&&(!options.cursor||name>options.cursor)).sort(),selected=matching.slice(0,options.limit??200);
+      return {blobs:await Promise.all(selected.map(async pathname=>({pathname,uploadedAt:(await stat(path(pathname))).mtime}))),hasMore:matching.length>selected.length,cursor:selected.at(-1)};
+    },
     async get(name) {
       const bytes=await read(name);if(!bytes)return null;
       let contentType='application/json';if(name.includes('/photos/'))contentType=name.endsWith('.png')?'image/png':name.endsWith('.webp')?'image/webp':'image/jpeg';
