@@ -1,14 +1,21 @@
-CURRENT FREE PUBLIC RELEASE — 2026-10-12
-The same Persian game is playable at https://rooye-pishooni.vercel.app/.
-Human-authorized immediate free Neon migration and provider terms are completed;
-no payment,paid trial,upgrade or card requirement. Original Blob data untouched.
-Exact50f60243e6eaeb9127440141dc42b249915a2074 merged inPR#2 as
-bf886026e0cf14e4cfb9cc6fe1babd4bd9bbd06a; native/Preview/Production all4PASS,
-Production complete21:48:48. Units77/76pass/1hostedskip,buildPASS,liveNeon43PASS,
-focused47PASS(4400deals/360turns),privacy6PASS,hosted errors0. Manual cleanup200,
-unauthorized401,daily04UTC deployed; no overnight invocation claimed observed.
-Free1GB/100CU-hours/5GB egress/month is finite. Refresh/start fresh rooms.
-Read STATUS.md,VERIFICATION.md,AGENTS.md,docs/LOCAL_CONTINUATION.md for current scope.
+CURRENT FREE FEATURE RELEASE — 2026-10-12
+Same Persian game: https://rooye-pishooni.vercel.app/.
+Latest direct human feature request completed on existing Neon Free/Vercel Hobby;
+no payment, paid trial or upgrade. Original Blob data remain untouched.
+Tested 00b37e3e3829dd0eab5daea4b161d54de32ab8dd, PR 3 normal merge
+652bb52e97e327f57e463545cd9c0c1bb84782d4 at 22:52:14 Berlin; runtime diff zero.
+Latest native five PASS (12/7/4/5/8); preceding bd5389e Preview five/privacy six PASS,
+plus latest affected Preview features eight/version PASS; identical backend.
+Latest stable Production five PASS (12/6/4/4/8), 34 hosted checks plus privacy six,
+zero browser errors, completed 23:03:49; successful exact logs zero diagnostics.
+120 units / 119 PASS / one hosted skip; build PASS; 10 draft tests PASS.
+Separate live Neon 43 PASS on identical bd5389e backend, zero owned fixtures.
+New 10/20/30 UI questions (server integers 5–30), optional autoPause, shared progress,
+referee handover, scoped pending/legacy text, private URL import and manual refresh.
+Manual cleanup 200/unauthorized 401, daily 04:00 UTC enabled; no overnight claim.
+Free 1 GB / 100 CU-hours / 5 GB egress per month is finite. Refresh safely;
+existing Neon rooms retain rules; new rooms use new defaults. No Blob room migration.
+Read STATUS / VERIFICATION / AGENTS / LOCAL_CONTINUATION / FEATURES_VERIFICATION.
 
 HISTORICAL PLAN BELOW — phone/PeerJS and older completion claims describe prior
 versions. Its architecture/service/wait restrictions are not current guidance.
