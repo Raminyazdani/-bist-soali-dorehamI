@@ -75,13 +75,15 @@ try{
   // Simulate the browser storage of the currently released client during an
   // upgrade: same participant session, legacy pending text, no new cache yet.
   const upgrading=await read(guest);
-  await guest.evaluate(s=>{
+  await guest.addInitScript(s=>{
+    // Seed before the new app's first bind. A running new client otherwise
+    // legitimately recreates its used marker on visibility/pagehide events.
+    const fixture=`forehead-legacy-fixture-${s.id}-${s.you}`;
+    if(localStorage.getItem(fixture)==='ready')return;
+    localStorage.setItem(fixture,'ready');
     const prefix=`forehead-text-v1-${s.id}-${s.you}-${s.generation}`;
     for(const key of Object.keys(localStorage))if(key===prefix||key.startsWith(prefix+'-'))localStorage.removeItem(key);
     localStorage.setItem(`forehead-drafts-${s.id}-${s.generation}`,JSON.stringify({[s.ownCards[0].id]:'پیش‌نویس نسخهٔ قبلی',foreign:'متن عضو دیگر'}));
-    // The old released client never wrote this new namespace on pagehide.
-    // Remove the current test client's lifecycle marker after its handler.
-    window.addEventListener('pagehide',()=>localStorage.removeItem(prefix),{once:true});
   },upgrading);
   await guest.reload();await guest.locator('textarea[data-card]').waitFor();
   assert.equal(await guest.locator('textarea[data-card]').inputValue(),'پیش‌نویس نسخهٔ قبلی');
