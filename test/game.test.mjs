@@ -224,7 +224,7 @@ test('pause/resume excludes pause duration, and stale turn commands are rejected
   assert.throws(()=>cmd(room,room.turn.refereeId,'start',{turnId:oldTurn},baseTime+26000),{code:'STALE_TURN'});
 });
 test('a disconnected guesser/referee pauses from durable server presence',()=>{
-  let room=prepared(2,1);room=cmd(room,room.turn.refereeId,'start');
+  let room=prepared(2,1);delete room.settings;room=cmd(room,room.turn.refereeId,'start');
   const presence=Object.fromEntries(room.players.map(p=>[p.id,baseTime+25000]));presence[room.turn.playerId]=baseTime;
   room=applyAction(room,room.turn.refereeId,'autoPause',{}, {now:baseTime+25000,presence,requestId:'offline_pause'}).room;
   assert.equal(room.turn.status,'paused');assert.equal(room.turn.pauseReason,'connection');
