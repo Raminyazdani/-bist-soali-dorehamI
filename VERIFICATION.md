@@ -1,63 +1,42 @@
-# Verified release
+# Verification — 2026-10-12 (Europe/Berlin)
 
-Verified at 2026-10-10T20:43:23.759915+00:00.
-Playable URL: https://rooye-pishooni.vercel.app/
-Production source commit: 1099f190c02323d36d52b6169dca49be174d49d4.
-Vercel deployment: dpl_bPV2GuAVJN5YdyZmmg9jeM9XSs1p (production, READY).
+## Native Windows handoff baseline
 
-`npm test`: 19 passed, 0 failed. `npm run build`: passed.
-`E2E_URL=https://rooye-pishooni.vercel.app node test/browser-e2e.mjs`: passed.
+Source f37f71d30a61555e1ba513fdb275bb2db07c0e9a; Node 24.13.1, npm 11.13.0, Chromium 141.0.7390.37. Completed around 19:46 Europe/Berlin.
 
-Four isolated mobile Chromium contexts, 12 complete turns, actual public PeerJS signaling and native encrypted WebRTC. No fake host, signaling or data transport. The test observer reads authenticated peer RPC projections over the network.
+| Check | Result |
+| --- | --- |
+| npm ci / Chromium install | PASS; audit reported 0 vulnerabilities |
+| npm test / build | PASS; 42 tests |
+| browser-e2e | PASS; 4 contexts, 12 turns, 12 checks, 0 browser errors |
+| photo-e2e | PASS; 2 contexts, 2 turns, 7 checks, 0 browser errors |
+| lobby-e2e | PASS; 3 contexts, 4 checks, 0 browser errors |
+| background-e2e | PASS; 3 contexts, 5 checks, 0 browser errors |
+| Visual inspection | PASS; RTL home/guide at 320/390/768/1280 px, landscape, scoreboard and confirmation |
 
-- 4 mobile browsers join with a six-digit code and mark ready
-- empty required card text is rejected in the actual UI/API
-- browser photo compression, durable phone storage and rendered photo over WebRTC
-- landscape overhead view; undo; pause freezes time; player reload retains identity
-- creator reload restores the durable room, pauses time and reconnects the group
-- 12 turns; each card used exactly once; no own card dealt; scores and final scoreboard correct
-- replay returns all 4 players to a clean lobby
-- all players can leave after replay and create an independent fresh lobby
-- no uncaught browser errors or horizontal overflow in tested mobile views
+These use actual HTTP and durable local disk, not cloud storage. They cover author balance, unique cards, photos/picker/autosave, cancel/Escape, question/undo/pause, reload, scoring, replay and management. Creator disappearance unloads the app for 48 seconds while guests save cards/photos and claim management; local server restart preserves data. Mobile browser contexts were used, not physical phones.
 
-No uncaught browser errors or horizontal overflow in the tested mobile views. Home and referee views were also visually inspected. This verifies browser contexts, not four physical phones. The runner's loopback ICE permissions/flags are testing setup only; the app never requests camera/microphone permission.
+## Hosted defect and correction
 
-Playing requires Internet and the original creator phone's page to remain open and awake. Shared Wi-Fi is recommended. Creator recovery uses the same browser's IndexedDB; clearing it removes that room. No service accounts, environment variables, database or laptop are required.
+Preview dpl_GvuHNis53yPRRdXx72Z2MAAXDVUN, source f37f71d, READY: config=200, unauthenticated cleanup=401. Browser test failed at the fourth join (BUSY); later suites stopped.
 
-Later documentation-only commits preserve this tested runtime.
+Four live private Blob payload sizes reproduced compressed JSON GET returning a weak ETag while put/head exposed the strong version; If-Match failed. Identity encoding on the same uncached GET returned a strong version and allowed CAS in every case. Only this verification's unique diagnostic fixtures were deleted.
 
-## Photo picker regression fix
+Mutable JSON now requests identity encoding. New provider regression fails before the fix and passes after, including stale-write rejection and state preservation. Expanded native tests also reproduced transient Windows sharing errors during disk replacement; bounded retries fix only the local adapter.
 
-The previous immediate-upload test missed an open native picker outliving an autosave/heartbeat rerender. A new two-player regression test failed on the old code (no author preview after selection) and passes locally on the fixed code. It verifies photo upload from both players, images on the other player's overhead card and referee screen, recipient reload, and both photos in the final deck. Core tests: 19 passed. Build: passed. Final hosted photo regression check: PASSED on the stable game URL.
+- Corrected npm test: **43 passed, 0 failed**; safe-diagnostics revision: **44 passed, 0 failed**.
+- Corrected build: PASS.
+- Unchanged 12-player concurrent HTTP test: PASS after the Windows fix.
+- git diff --check: PASS.
+- Corrected native browser suites on e592ab1: PASS, 12/7/4/5 checks, zero browser errors.
+- Corrected hosted Preview and public Production: pending.
 
-Verified at 2026-10-10T21:00:37.557659+00:00.
-Runtime source: 20a83aecf6e2decc271bb95c64c0633a0aa887d1.
-Production deployment: dpl_9mixoHwyjQevRjXKkHaYuDzVtsmD, READY.
-Command: `E2E_URL=https://rooye-pishooni.vercel.app node test/photo-e2e.mjs`.
+The final diagnostic Preview dpl_GYUkfmTutbUA5ZZPrBUUXTcioCLo identified the exact provider reason: a conditional request conflicted with another operation on the resource. It is delivered as generic BlobError, separate from BlobPreconditionFailedError. Only that exact SDK class/message now enters the existing bounded fresh-read/CAS retry path. New regression: RED before fix, GREEN after; another committed change survives, the action commits once, stale CAS stays rejected and unrelated SDK errors still propagate. Full unit suite: **45 passed, 0 failed**; build PASS. Final native/hosted browser reruns are pending this correction.
 
-- creator photo selection survives autosave/heartbeat while native picker is open
-- guest photo selection survives autosave/heartbeat while native picker is open
-- recipient reload retrieves the current photo again
-- turn 1: other author's photo rendered on recipient and referee, including landscape view
-- turn 2: other author's photo rendered on recipient and referee, including landscape view
-- both photos remain on completed cards and scoreboard for both players
+Corrected Preview dpl_9shcGYrN4TYscPAaTWebYm2FPPLY resolved the weak-ETag defect: all four players joined and seven turns completed, including real photos, confirmations and reloads. An observer then received 503 SERVICE_UNAVAILABLE on a state read; the remaining suites stopped. Diagnostic Preview dpl_4XgEMbgf2Q64mYxDbx2FcVhM22FC failed at photo upload and identified generic BlobError without transport/GET status. Direct concurrent provider CAS diagnostics produced only expected precondition conflicts. SDK-only reason diagnostics now redact configured credentials, URLs, bearer/session/proof values and identifiers; non-SDK messages remain excluded. The expanded privacy regression and full 44-test suite pass. No retry/assertion was changed merely to bypass the failure.
 
-Zero uncaught browser errors. No horizontal overflow. No physical phones were used by this test. Later documentation-only commits preserve the verified runtime.
+## Release gate
 
+Run four corrected native/hosted Preview suites with real private Blob and photo privacy negatives. Confirm exact PR head, green CI and clean secret scan before merge. Then verify actual text/photo/game/result/replay and creator absence on https://rooye-pishooni.vercel.app/. Private fra1 storage is bound to Preview/Production; Production CRON_SECRET protects cleanup configured at 04:00 UTC. A scheduled run has not been observed.
 
-## Lobby management and creator exit
-
-Verified at 2026-10-10T21:26:07.810Z.
-Runtime source: 77b764fa9a441376e227dd55c03bcebc51f66dc8.
-Production deployment: dpl_D1ChTqRteUPPZMstTsLsmDYZkS4a, READY, stable URL https://rooye-pishooni.vercel.app/.
-
-`npm test`: 25 passed. `npm run build`: passed.
-`node test/browser-e2e.mjs`: PASSED with four mobile browser contexts and all 12 turns over actual public PeerJS/native WebRTC, including photo transfer, undo/pause, guest and creator reload, scores, replay and leave/recreate.
-`E2E_URL=https://rooye-pishooni.vercel.app node test/lobby-e2e.mjs`: PASSED with three mobile browser contexts over actual public PeerJS/native WebRTC.
-
-- manager kicks a lobby guest and the guest returns home immediately
-- confirmed mid-game kick resets remaining players to a clean two-person lobby
-- original creator can close after transferring management; all connected players return home
-- transferred manager can close; original host leaves cleanly; a fresh independent lobby works
-
-Zero uncaught browser errors and no horizontal overflow in both browser runs. New rule/service tests cover manager permissions, original creator protection, confirmed kick/reset, legacy creator identity, closure persistence and leaderboard sum of successful and failed turn durations. Ranking is total points descending, then total completed-turn time ascending, excluding pause and countdown. Exact score/time ties share rank. All clients should refresh before using the new controls. Later documentation-only commits preserve this verified runtime.
+Credentials, room identifiers, signed photo URLs and raw test artifacts remain in ignored local files. Earlier PeerJS/WebRTC results are historical and do not verify this server-backed release.
