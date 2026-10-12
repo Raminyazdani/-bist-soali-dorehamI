@@ -1,10 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import { GameService } from '../lib/service.mjs';
 import { GameError } from '../lib/game.mjs';
+import {BlobStore} from '../lib/blob-store.mjs';
+import {fileBlob} from '../scripts/file-blob.mjs';
 
-// This adapter exercises reducer concurrency; production persists private Blob state.
+// This fixture exercises reducer concurrency without production credentials.
 class TestStore {
   constructor(){this.rows=new Map();this.people={};this.uploads=new Set();this.deleted=[];this.conflicts=0;}
   async insert(room){await new Promise(resolve=>setImmediate(resolve));if(this.rows.has(room.id))return null;const row={id:room.id,revision:0,state:structuredClone(room)};this.rows.set(room.id,row);return structuredClone(row);}
@@ -79,4 +84,71 @@ test('service kick removes the old actor and prevents that actor changing the ro
   assert.equal((await service.state(auth(a.credentials))).snapshot.players.length,1);
   await assert.rejects(service.state(auth(b.credentials)),{code:'UNAUTHORIZED'});
   await assert.rejects(command(service,b.credentials,'readyLobby',{ready:true}),{code:'UNAUTHORIZED'});
+});
+
+test('service settings persist through retries and concurrent partial changes without lost fields',async()=>{
+  const store=new TestStore(),service=new GameService(store),intent={name:'مدیر',settings:{questions:30},...identity()};
+  const a=await service.create(intent),again=await service.create({...intent,settings:{questions:10}});
+  assert.equal(again.snapshot.settings.questions,30);
+  const b=await service.join({name:'دوست',code:a.credentials.code,...identity()});
+  for(const p of [a,b])await command(service,p.credentials,'readyLobby',{ready:true});
+  await assert.rejects(command(service,b.credentials,'setSettings',{settings:{questions:10}}),{code:'HOST_ONLY'});
+  await Promise.all([
+    command(service,a.credentials,'setSettings',{settings:{questions:10},cardsPerPlayer:2}),
+    command(service,a.credentials,'setSettings',{settings:{autoPause:true}})
+  ]);
+  const current=await service.state(auth(a.credentials));
+  assert.deepEqual(current.snapshot.settings,{questions:10,autoPause:true,sharedControls:true});
+  assert.equal(current.snapshot.cardsPerPlayer,2);assert.ok(current.snapshot.players.every(p=>!p.ready));
+  const before=await store.get(a.credentials.roomId);
+  const request={...auth(a.credentials),action:'setSettings',data:{settings:{sharedControls:false}},requestId:'same_settings_service_request'};
+  await Promise.all([service.action(request),service.action(request)]);
+  const after=await store.get(a.credentials.roomId);assert.equal(after.revision,before.revision+1);
+  assert.deepEqual(after.state.settings,{questions:10,autoPause:true,sharedControls:false});
+});
+
+test('service permits independent referee takeover from fresh confirmed absence',async()=>{
+  const store=new TestStore();let now=1900000000000;
+  const service=new GameService(store,{clock:()=>now,random:()=>0.4}),people=[];
+  const a=await service.create({name:'مدیر',cardsPerPlayer:1});people.push(a);
+  for(let i=1;i<4;i++)people.push(await service.join({name:`دوست ${i}`,code:a.credentials.code}));
+  for(const p of people)await command(service,p.credentials,'readyLobby',{ready:true});
+  await command(service,people[1].credentials,'startWriting');
+  for(const p of people){const view=(await service.state(auth(p.credentials))).snapshot;await command(service,p.credentials,'readyWriting',{ready:true,cards:view.ownCards.map(c=>({id:c.id,text:'کارت'}))});}
+  const before=await store.get(a.credentials.roomId);
+  const claimant=people.find(p=>![before.state.hostId,before.state.turn.playerId,before.state.turn.refereeId].includes(p.credentials.playerId));
+  now+=20001;
+  const result=await command(service,claimant.credentials,'claimReferee',{generation:before.state.generation,turnId:before.state.turn.id});
+  assert.equal(result.snapshot.turn.refereeId,claimant.credentials.playerId);assert.equal(result.snapshot.turn.refereeOnline,true);
+  assert.equal(result.snapshot.hostId,before.state.hostId);assert.equal(result.snapshot.turn.id,before.state.turn.id);
+  const after=await store.get(a.credentials.roomId);assert.equal(after.revision,before.revision+1);assert.equal(after.state.cards.length,before.state.cards.length);
+});
+
+test('a referee heartbeat racing takeover invalidates the CAS and fresh presence rejects the claim',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'forehead-referee-race-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const sdk=fileBlob(directory);let now=1900000000000,injected=0,claimantId;
+  const provider={...sdk,put:async(path,value,options)=>{
+    if(claimantId&&!injected&&path.includes('/rooms/')&&options?.ifMatch){
+      const attempted=JSON.parse(value);
+      if(attempted.state.turn?.refereeId===claimantId){
+        injected++;const existing=await new BlobStore({sdk}).get(attempted.id);
+        await new BlobStore({sdk}).ping(existing.id,existing.state.turn.refereeId,now);
+      }
+    }
+    return sdk.put(path,value,options);
+  }};
+  const service=()=>new GameService(new BlobStore({sdk:provider}),{clock:()=>now,random:()=>0.4}),people=[];
+  const a=await service().create({name:'مدیر',cardsPerPlayer:1});people.push(a);
+  for(let i=1;i<4;i++)people.push(await service().join({name:`دوست ${i}`,code:a.credentials.code}));
+  for(const p of people)await command(service(),p.credentials,'readyLobby',{ready:true});
+  await command(service(),people[1].credentials,'startWriting');
+  for(const p of people){const view=(await service().state(auth(p.credentials))).snapshot;await command(service(),p.credentials,'readyWriting',{ready:true,cards:view.ownCards.map(c=>({id:c.id,text:'کارت'}))});}
+  const before=await new BlobStore({sdk}).get(a.credentials.roomId);
+  const claimant=people.find(p=>![before.state.hostId,before.state.turn.playerId,before.state.turn.refereeId].includes(p.credentials.playerId));
+  claimantId=claimant.credentials.playerId;now+=20001;
+  await assert.rejects(command(service(),claimant.credentials,'claimReferee',{turnId:before.state.turn.id}),{code:'REFEREE_ONLINE'});
+  assert.equal(injected,1,'the heartbeat must commit between absence read and conditional write');
+  const after=await new BlobStore({sdk}).get(before.id);
+  assert.equal(after.revision,before.revision);assert.equal(after.state.turn.refereeId,before.state.turn.refereeId);
+  assert.equal(JSON.stringify(after.state),JSON.stringify(before.state));assert.equal(after.people[before.state.turn.refereeId],now);
 });

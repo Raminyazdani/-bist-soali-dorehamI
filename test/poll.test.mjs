@@ -7,7 +7,7 @@ const BASE=1900000000000,NOW=BASE+100000;
 const clone=value=>structuredClone(value);
 
 function gameFixture() {
-  const first=createRoom({name:'author a',cardsPerPlayer:2,now:BASE});
+  const first=createRoom({name:'author a',cardsPerPlayer:2,settings:{autoPause:true},now:BASE});
   let room=first.room;const credentials=[first.credentials];
   for(const name of ['author b','author c']){const joined=joinRoom(room,name,BASE);room=joined.room;credentials.push(joined.credentials);}
   let sequence=0;
@@ -33,7 +33,7 @@ function gameFixture() {
 // card bodies, request history, assignments and results do not exist in it.
 function compactFixture(row) {
   return {id:row.id,revision:row.revision,compact:true,state:{
-    expiresAt:row.state.expiresAt,phase:row.state.phase,generation:row.state.generation,
+    expiresAt:row.state.expiresAt,phase:row.state.phase,generation:row.state.generation,settings:clone(row.state.settings),
     players:row.state.players.map(p=>({id:p.id,tokenHash:p.tokenHash,joinedAt:p.joinedAt})),
     turn:{status:row.state.turn.status,playerId:row.state.turn.playerId,refereeId:row.state.turn.refereeId}
   }};
@@ -74,7 +74,8 @@ test('unchanged compact polls still authenticate, refresh presence and expose on
   assert.equal(result.unchanged.players.find(p=>p.id===data.playerId).online,true);
   assert.deepEqual(store.events.map(e=>e.kind),['getPoll','ping','presence']);
   assert.equal(store.events[1].now,NOW);
-  assert.deepEqual(Object.keys(result.unchanged).sort(),['generation','id','players','revision','serverNow','you']);
+  assert.deepEqual(Object.keys(result.unchanged).sort(),['generation','id','players','refereeOnline','revision','serverNow','you']);
+  assert.equal(result.unchanged.refereeOnline,true);
   for(const player of result.unchanged.players)assert.deepEqual(Object.keys(player).sort(),['id','online']);
   const body=JSON.stringify(result);
   for(const player of row.state.players)assert.ok(!body.includes(player.tokenHash));
@@ -165,4 +166,36 @@ test('a heartbeat that yields a fresh complete revision returns its full snapsho
   assert.equal(result.unchanged,undefined);assert.equal(result.snapshot.revision,42);
   assert.equal(result.snapshot.players.find(p=>p.id===data.playerId).name,'fresh public name');
   assert.equal(store.events.filter(e=>e.kind==='get').length,0);assert.equal(store.events.filter(e=>e.kind==='cas').length,0);
+});
+
+test('disabled auto-pause compact polling reports confirmed referee absence without reading or writing a full room',async()=>{
+  const {row,data}=gameFixture();row.state.settings.autoPause=false;
+  const store=new PollStore(row),service=new GameService(store,{clock:()=>NOW});
+  store.people[row.state.turn.playerId]=NOW-60000;store.people[row.state.turn.refereeId]=NOW-20001;
+  const result=await service.state(data);
+  assert.equal(result.unchanged.refereeOnline,false);assert.equal(result.snapshot,undefined);
+  assert.deepEqual(store.events.map(e=>e.kind),['getPoll','ping','presence']);
+  assert.equal(store.current.state.turn.status,'running');assert.equal(store.current.revision,row.revision);
+  delete store.people[row.state.turn.refereeId];
+  assert.equal((await service.state(data)).unchanged.refereeOnline,true,'unknown presence cannot establish absence');
+});
+
+test('disabled auto-pause full polling keeps absent players turns running and exposes settings',async()=>{
+  const {row,data}=gameFixture();row.state.settings.autoPause=false;delete data.knownRevision;
+  const store=new PollStore(row),service=new GameService(store,{clock:()=>NOW});
+  store.people[row.state.turn.playerId]=NOW-60000;store.people[row.state.turn.refereeId]=NOW-60000;
+  const result=await service.state(data);
+  assert.equal(result.snapshot.turn.status,'running');assert.equal(result.snapshot.turn.refereeOnline,false);
+  assert.equal(result.snapshot.settings.autoPause,false);assert.equal(result.snapshot.revision,row.revision);
+  assert.equal(store.events.filter(e=>e.kind==='cas').length,0);assert.equal(store.events.filter(e=>e.kind==='get').length,1);
+});
+
+test('legacy compact polling still auto-pauses and a settings revision change returns full settings',async()=>{
+  const {row,data}=gameFixture();delete row.state.settings;
+  const store=new PollStore(row),service=new GameService(store,{clock:()=>NOW});store.people[row.state.turn.playerId]=NOW-20001;
+  const result=await service.state(data);
+  assert.equal(result.snapshot.turn.status,'paused');assert.deepEqual(result.snapshot.settings,{questions:20,autoPause:true,sharedControls:false});
+  const fresh=gameFixture();fresh.row.revision=42;fresh.row.state.settings={questions:30,autoPause:false,sharedControls:true};
+  const changed=await new GameService(new PollStore(fresh.row,fresh.row),{clock:()=>NOW}).state(fresh.data);
+  assert.equal(changed.unchanged,undefined);assert.equal(changed.snapshot.settings.questions,30);assert.equal(changed.snapshot.revision,42);
 });
