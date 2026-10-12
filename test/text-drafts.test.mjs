@@ -31,7 +31,7 @@ test('reversing to the previous server value survives its stale poll while an ol
 test('a fresh server confirmation reconciles a lost response and normalization before resending', () => {
   const disk=storage(),drafts=new TextDrafts(disk);drafts.bind(state());drafts.set('card-a','  پاسخ  ');
   const reload=new TextDrafts(disk);assert.equal(reload.bind(state({ownCards:[{id:'card-a',text:'پاسخ'}]})).size,0);
-  assert.equal(disk.values.size,0);
+  assert.deepEqual(JSON.parse(disk.getItem(reload.key)),{});
 });
 test('generation change and stale async acknowledgements cannot affect a fresh game', () => {
   const drafts=new TextDrafts(storage());drafts.bind(state());drafts.set('card-a','دست قبلی');const old=drafts.ticket('card-a');
@@ -43,4 +43,43 @@ test('invalid/foreign cached entries are ignored and blocked local storage is re
   assert.equal(new TextDrafts(disk).bind(state()).size,0);
   const blocked=new TextDrafts({getItem(){throw Error('blocked');},setItem(){throw Error('blocked');},removeItem(){throw Error('blocked');}});
   blocked.bind(state());blocked.set('card-a','حفظ در حافظه');assert.equal(blocked.persisted,false);assert.equal(blocked.values().get('card-a'),'حفظ در حافظه');
+});
+test('published legacy drafts migrate only own valid text and preserve another author cache', () => {
+  const disk=storage(),legacyKey='forehead-drafts-room-a-1';
+  disk.setItem(legacyKey,JSON.stringify({'card-a':'نوشتهٔ منتشرنشده',foreign:'نوشتهٔ نویسندهٔ دیگر',token:'secret',photo:{bytes:'private'},proof:{signature:'private'},url:'https://example.test/photo'}));
+  const drafts=new TextDrafts(disk);assert.equal(drafts.bind(state()).get('card-a'),'نوشتهٔ منتشرنشده');
+  assert.deepEqual(JSON.parse(disk.getItem(drafts.key)),{'card-a':'نوشتهٔ منتشرنشده'});
+  const remaining=JSON.parse(disk.getItem(legacyKey));assert.equal(Object.hasOwn(remaining,'card-a'),false);
+  assert.deepEqual(remaining,{foreign:'نوشتهٔ نویسندهٔ دیگر',token:'secret',photo:{bytes:'private'},proof:{signature:'private'},url:'https://example.test/photo'});
+});
+test('legacy import requires own writing/unready scope and ignores invalid text or another generation', () => {
+  const disk=storage(),legacyKey='forehead-drafts-room-a-1',legacy=JSON.stringify({'card-a':'قدیمی',foreign:'متن دیگر','card-long':'ک'.repeat(161),'card-object':{text:'not plain text'}});
+  disk.setItem(legacyKey,legacy);
+  for (const snapshot of [state({phase:'playing'}),state({phase:'lobby'}),state({players:[]}),state({players:[{id:'player-a',ready:true}]}),state({you:'player-b',players:[{id:'player-b',ready:false}],ownCards:[{id:'card-b',text:''}]}),state({generation:2})]) {
+    assert.equal(new TextDrafts(disk).bind(snapshot).size,0);
+  }
+  assert.equal(disk.getItem(legacyKey),legacy);
+  const invalid=new TextDrafts(disk);assert.equal(invalid.bind(state({ownCards:[{id:'card-long',text:''},{id:'card-object',text:''}]})).size,0);
+  assert.deepEqual(JSON.parse(disk.getItem(invalid.key)),{});
+});
+test('scoped drafts and empty used scopes win; acknowledged or reset text never resurrects from legacy', () => {
+  const disk=storage(),legacyKey='forehead-drafts-room-a-1',scopedKey='forehead-text-v1-room-a-player-a-1';
+  disk.setItem(legacyKey,JSON.stringify({'card-a':'قدیمی'}));disk.setItem(scopedKey,JSON.stringify({'card-a':'تازه'}));
+  const drafts=new TextDrafts(disk);assert.equal(drafts.bind(state()).get('card-a'),'تازه');
+  assert.equal(drafts.acknowledge(drafts.ticket('card-a')),true);assert.deepEqual(JSON.parse(disk.getItem(scopedKey)),{});
+  assert.equal(new TextDrafts(disk).bind(state()).size,0);
+  drafts.bind(state());drafts.set('card-a','قبل از بازی تازه');drafts.bind(state({generation:2,ownCards:[{id:'card-b',text:''}]}));
+  assert.deepEqual(JSON.parse(disk.getItem(scopedKey)),{});
+  assert.equal(new TextDrafts(disk).bind(state()).size,0);
+  assert.equal(JSON.parse(disk.getItem(legacyKey))['card-a'],'قدیمی');
+  disk.setItem(scopedKey,'invalid JSON');assert.equal(new TextDrafts(disk).bind(state()).size,0);
+});
+test('migration reconciles confirmed text and never removes legacy data before durable scoped save', () => {
+  const disk=storage(),legacyKey='forehead-drafts-room-a-1';disk.setItem(legacyKey,JSON.stringify({'card-a':'  پاسخ  ',foreign:'باقی'}));
+  const confirmed=new TextDrafts(disk);assert.equal(confirmed.bind(state({ownCards:[{id:'card-a',text:'پاسخ'}]})).size,0);
+  assert.deepEqual(JSON.parse(disk.getItem(confirmed.key)),{});assert.deepEqual(JSON.parse(disk.getItem(legacyKey)),{foreign:'باقی'});
+  const blockedDisk=storage();blockedDisk.setItem(legacyKey,JSON.stringify({'card-a':'هنوز محلی'}));
+  const blocked=new TextDrafts({...blockedDisk,setItem(){throw Error('blocked');}});
+  assert.equal(blocked.bind(state()).get('card-a'),'هنوز محلی');assert.equal(blocked.persisted,false);
+  assert.deepEqual(JSON.parse(blockedDisk.getItem(legacyKey)),{'card-a':'هنوز محلی'});
 });
