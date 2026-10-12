@@ -6,6 +6,16 @@ import {randomUUID,createHash} from 'node:crypto';
 const queues=new Map();
 const etag=bytes=>createHash('sha256').update(bytes).digest('hex');
 const error=code=>Object.assign(new Error(code),{code});
+async function replaceFile(from,to) {
+  for(let attempt=0;;attempt++){
+    try{return await rename(from,to);}
+    catch(error){
+      // Windows may briefly hold the destination open during a concurrent read.
+      if(process.platform!=='win32'||!['EPERM','EACCES','EBUSY'].includes(error.code)||attempt>=5)throw error;
+      await new Promise(resolve=>setTimeout(resolve,10*2**attempt));
+    }
+  }
+}
 export function fileBlob(directory) {
   const root=resolve(directory);
   const path=name=>{const result=resolve(root,name),inside=relative(root,result);if(!inside||inside==='..'||inside.startsWith('..'+sep)||isAbsolute(inside))throw error('BAD_PATH');return result;};
@@ -36,7 +46,7 @@ export function fileBlob(directory) {
       if(options.ifMatch&&(!old||etag(old)!==options.ifMatch))throw error('PRECONDITION');
       if(old&&!options.allowOverwrite)throw error('EXISTS');
       const bytes=Buffer.from(value),target=path(name);await mkdir(dirname(target),{recursive:true});
-      const temporary=target+'.'+randomUUID()+'.tmp';await writeFile(temporary,bytes);await rename(temporary,target);
+      const temporary=target+'.'+randomUUID()+'.tmp';await writeFile(temporary,bytes);await replaceFile(temporary,target);
       return {etag:etag(bytes)};
     }); },
     async del(names,options={}) { return serial(async()=>{for(const name of Array.isArray(names)?names:[names]){

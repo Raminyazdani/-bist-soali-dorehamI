@@ -61,3 +61,30 @@ test('an unconfigured deployment reports an honest setup error before any storag
   await gameRequest({method:'POST',headers:{host:'example.invalid','content-type':'application/json'},body:{type:'config'}},response,{configured:()=>false});
   assert.equal(response.statusCode,503);assert.equal(value.code,'SERVICE_NOT_CONFIGURED');assert.equal(headers['Cache-Control'],'no-store');
 });
+
+test('large mutable JSON reads preserve an atomic strong ETag and reject stale writes',async t=>{
+  const {sdk}=await disk(t);
+  const room=createRoom({name:'رامین',code:'123456'}).room;
+  room.requests=Array.from({length:250},(_,i)=>`${room.creatorId}:large_request_${i}`);
+  assert.ok(Buffer.byteLength(JSON.stringify(room))>6000);
+  // The hosted provider weakens the ETag of compressed JSON. An uncoded
+  // response returns the exact stored body and its conditional-write version.
+  const provider={...sdk,get:async(name,options={})=>{
+    const result=await sdk.get(name);if(!result)return null;
+    const bytes=Buffer.from(await new Response(result.stream).arrayBuffer());
+    const compressed=bytes.length>6000&&new Headers(options.headers).get('accept-encoding')!=='identity';
+    return {...result,stream:new Response(bytes).body,blob:{...result.blob,etag:compressed?`W/"${result.blob.etag}"`:result.blob.etag}};
+  }};
+  await new BlobStore({sdk:provider}).insert(room);
+  const firstStore=new BlobStore({sdk:provider}),secondStore=new BlobStore({sdk:provider});
+  const first=await firstStore.get(room.id),stale=await secondStore.get(room.id);
+  assert.deepEqual(first.state,room);
+  assert.equal(await firstStore.cas(first,{...first.state,cardsPerPlayer:2}),true,'the body version must be usable for a conditional write');
+  assert.equal(await secondStore.cas(stale,{...stale.state,cardsPerPlayer:3}),false,'a concurrent write must still invalidate the old body version');
+  const latest=await secondStore.get(room.id);
+  assert.equal(latest.state.cardsPerPlayer,2);assert.equal(latest.revision,1);
+  assert.equal(await secondStore.cas(latest,{...latest.state,players:latest.state.players.map(player=>({...player,ready:true}))}),true);
+  const committed=await new BlobStore({sdk:provider}).get(room.id);
+  assert.equal(committed.state.cardsPerPlayer,2);assert.equal(committed.state.players[0].ready,true);assert.equal(committed.revision,2);
+  assert.deepEqual(committed.state.requests,room.requests);
+});
