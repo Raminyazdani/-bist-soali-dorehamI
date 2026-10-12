@@ -1,4 +1,27 @@
-# Verification — release blocked, 2026-10-12 (Europe/Berlin)
+# Free Neon candidate verification — 2026-10-12 (Europe/Berlin)
+
+Latest user scope authorizes this same game's immediate free alternative and mechanics audit. The human directly accepted Neon terms. Candidate branch: fix/free-durable-storage. Exact candidate source has not yet been recorded. The stable URL still runs the suspended Blob backend and is currently unavailable. No payment, paid upgrade/trial or Vercel plan change was accepted.
+
+| New candidate gate | Current evidence |
+| --- | --- |
+| Owned Neon resource | Active free_v3/fra1, cost Free, paymentMethodRequired=false; Preview/Production only, same database |
+| Actual database connection | SELECT 1 PASS |
+| Live provider adapter | Latest 43-check run PASS, 12 concurrent players, 600 KiB byte round trip, idempotency, version/presence races, compact reads, quotas/cleanup; 0 owned fixtures remain. Final provider rerun PASS, 43 checks, zero owned fixtures |
+| Focused crypto/game/poll | 47 PASS; 4,400 dealing cases and 360 turns; locked-ready and canonical/exact UUID regressions corrected |
+| Full unit suite | 77 total: 76 PASS, 1 explicit hosted skip, 0 failures |
+| Build | PASS, Vite 8.3.4 |
+| Full candidate native browser/photo/lobby/background | Pending |
+| Actual candidate Preview game/photo/privacy/lobby/creator-away/cleanup | Pending |
+| Exact tested-head merge / stable Production checks | Pending |
+
+New backend: request-local PostgresStore, server-only DATABASE_URL, room JSON and private bytea photos, atomic game revision plus presence/body version, durable quotas and 24-hour TTL/cascade cleanup. Compact matching-revision SQL never supplies an incomplete body to CAS/autoPause; fresh full reads still authenticate and provide expiring photo proofs. Closed/expired/kicked sessions and future-card access must remain rejected. Typed server environment/configuration is recorded without secret values.
+
+In-memory maximum-card sizing through the actual adapter/service measured 4,361 bytes compact SQL row and 893 bytes unchanged HTTP response. Changed state, initial/reload and photo-link revalidation remain full reads. Free 1 GB storage, 100 CU-hours compute and 5 GB egress are finite; the sizing result does not prove unlimited public capacity. No provider credentials/raw rooms/photos were printed. New full native/hosted gates must use exact candidate provenance; old Blob passes below do not verify Neon.
+
+Historical records below preserve failed/successful observations only. Their Blob-only, waiting and backend-freeze instructions are superseded by the current free-alternative authorization. The old Blob store/data were not changed or claimed migrated. Fresh rooms will be required after the new release. Mobile browser contexts are not physical-phone testing.
+
+---
+# Historical Vercel Blob verification — 2026-10-12
 
 The final runtime passed native Windows and complete actual Vercel Preview verification, then was merged and deployed. Stable Production verification failed after Vercel suspended the private store for exceeded usage quota. The public game is currently unavailable; release completion is not claimed.
 

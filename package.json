@@ -12,6 +12,7 @@
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
     "@noble/hashes": "^2.4.0",
     "@vercel/blob": "^2.8.1",
     "buffer": "^6.0.3"

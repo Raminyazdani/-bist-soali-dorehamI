@@ -1,10 +1,17 @@
-HISTORICAL PLAN — superseded on 2026-10-12
-The phone/PeerJS architecture and release-complete statements below describe
-the earlier version. Current code uses Vercel Functions and private Blob.
-PR #1 is merged and native/real Preview tests pass, but playable Production
-is blocked by provider quota suspension. Read STATUS.md and VERIFICATION.md
-for current evidence and docs/LOCAL_CONTINUATION.md for the next action.
+CURRENT FREE CONTINUATION — 2026-10-12
+The latest human request authorizes immediate free Neon activation of this same
+app, preserving mechanics. This supersedes Blob-only/wait-until-November limits.
+Neon Free/fra1 is active and bound only to Preview+Production of the existing
+project; actual SQL and 43 live adapter checks pass, with no fixture leftovers.
+47 focused crypto/game/poll checks pass (4400 dealing cases,360 simulated turns).
+Units77 total/76 pass/1 hosted skip; Vite8.3.4 build passes. Final source,
+latest live rerun,full native,new Preview and stable Production remain pending.
+Stable presently still runs suspended Blob. No paid upgrade/trial/payment; the
+human directly accepted Neon terms. Original Blob data remain untouched.
+Read STATUS.md, VERIFICATION.md and docs/LOCAL_CONTINUATION.md for current scope.
 
+HISTORICAL PLAN BELOW — phone/PeerJS and completion claims describe the prior
+version. Do not treat its architecture/service restrictions as current work.
 FOREHEAD / روی پیشونی — implementation plan, 2026-10-10
 
 Goal: a complete Persian mobile party game usable today, deployed to the user's
