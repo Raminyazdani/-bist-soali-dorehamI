@@ -1,17 +1,17 @@
-CURRENT FREE CONTINUATION — 2026-10-12
-The latest human request authorizes immediate free Neon activation of this same
-app, preserving mechanics. This supersedes Blob-only/wait-until-November limits.
-Neon Free/fra1 is active and bound only to Preview+Production of the existing
-project; actual SQL and 43 live adapter checks pass, with no fixture leftovers.
-47 focused crypto/game/poll checks pass (4400 dealing cases,360 simulated turns).
-Units77 total/76 pass/1 hosted skip; Vite8.3.4 build passes. Final source,
-latest live rerun,full native,new Preview and stable Production remain pending.
-Stable presently still runs suspended Blob. No paid upgrade/trial/payment; the
-human directly accepted Neon terms. Original Blob data remain untouched.
-Read STATUS.md, VERIFICATION.md and docs/LOCAL_CONTINUATION.md for current scope.
+CURRENT FREE PUBLIC RELEASE — 2026-10-12
+The same Persian game is playable at https://rooye-pishooni.vercel.app/.
+Human-authorized immediate free Neon migration and provider terms are completed;
+no payment,paid trial,upgrade or card requirement. Original Blob data untouched.
+Exact50f60243e6eaeb9127440141dc42b249915a2074 merged inPR#2 as
+bf886026e0cf14e4cfb9cc6fe1babd4bd9bbd06a; native/Preview/Production all4PASS,
+Production complete21:48:48. Units77/76pass/1hostedskip,buildPASS,liveNeon43PASS,
+focused47PASS(4400deals/360turns),privacy6PASS,hosted errors0. Manual cleanup200,
+unauthorized401,daily04UTC deployed; no overnight invocation claimed observed.
+Free1GB/100CU-hours/5GB egress/month is finite. Refresh/start fresh rooms.
+Read STATUS.md,VERIFICATION.md,AGENTS.md,docs/LOCAL_CONTINUATION.md for current scope.
 
-HISTORICAL PLAN BELOW — phone/PeerJS and completion claims describe the prior
-version. Do not treat its architecture/service restrictions as current work.
+HISTORICAL PLAN BELOW — phone/PeerJS and older completion claims describe prior
+versions. Its architecture/service/wait restrictions are not current guidance.
 FOREHEAD / روی پیشونی — implementation plan, 2026-10-10
 
 Goal: a complete Persian mobile party game usable today, deployed to the user's

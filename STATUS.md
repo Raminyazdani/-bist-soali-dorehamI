@@ -1,25 +1,23 @@
-# Free Neon continuation — 2026-10-12 (Europe/Berlin)
+# Free public release — 2026-10-12 (Europe/Berlin)
 
-The user now requests immediate activation through a free alternative, preserving this same app and mechanics. This supersedes the earlier Blob-only/wait-until-November restriction. The human accepted the new provider terms directly. No payment, paid plan/trial or Vercel upgrade was accepted.
+The same game is now playable at https://rooye-pishooni.vercel.app/ through the free Neon backend. Full native, actual Preview and stable Production suites passed. The human authorized immediate free activation/mechanics audit and directly accepted provider terms; no payment, paid trial, upgrade or card requirement was introduced. Vercel remains Hobby.
 
-Current candidate branch: fix/free-durable-storage. Its exact source checkpoint has not yet been recorded. Unit suite: 77 total, 76 PASS, 1 explicit hosted skip; Vite 8.3.4 build PASS. Full native browser, actual new Preview and stable Production verification are pending. The stable URL https://rooye-pishooni.vercel.app/ still runs the suspended Blob-backed version and is currently unavailable; the free candidate is not yet declared released.
+Repository: https://github.com/Raminyazdani/-bist-soali-dorehamI
+Merged release PR: https://github.com/Raminyazdani/-bist-soali-dorehamI/pull/2
+Verified runtime: 50f60243e6eaeb9127440141dc42b249915a2074.
+Merge/master: bf886026e0cf14e4cfb9cc6fe1babd4bd9bbd06a, merged at21:41:36.
+Production: dpl_7vZEwopPXvCCnQw3QCNiiuU3GBwM, READY, runtime matches tested source.
+Production verification completed21:48:48; see VERIFICATION.md for exact tables.
+CI: [candidate38298355943](https://github.com/Raminyazdani/-bist-soali-dorehamI/actions/runs/38298355943) and [master38299331031](https://github.com/Raminyazdani/-bist-soali-dorehamI/actions/runs/38299331031), PASS.
 
-## Verified new provider and candidate checks
+Units77 total/76 PASS/1 explicit hosted skip; buildPASS. Separate actual Neon43 checksPASS with zero owned fixture leftovers. Focused game/crypto/poll47PASS,4,400 dealing cases and360 turns. Native12/7/4/5PASS; actual Preview and Production each12/6/4/4PASS plus6 privacy boundaries. Zero browser errors and zero hosted backend diagnostics. These are isolated mobile Chromium contexts, not physical phones.
 
-Neon resource store_Sd3kFMmUOKStEBvc, project square-sound-46294634, plan free_v3, fra1, active. It is attached only to Preview and Production of the existing rooye-pishooni project; both environments use the same database. Actual SELECT 1 succeeded. Provider metadata shows cost Free and paymentMethodRequired=false.
+The existing rooye-pishooni Vercel project/repository remain in use. Neon resource store_Sd3kFMmUOKStEBvc / square-sound-46294634 is active, available, free_v3/fra1, costFree, paymentMethodRequired=false and usageQuotaExceeded=false, verified21:46:59. It is attached only to Preview/Production, sharing the same database. DATABASE_URL and CRON_SECRET stay server-only.
 
-Live Neon adapter verification: the prior 43-check run PASS, including 12 concurrent players, repeated actions/uploads, stale version rejection, heartbeat/presence fencing, compact reads, 600 KiB private-photo byte round trip, durable quotas and scoped cleanup; zero owned fixtures remained. Its latest-final-source rerun is in progress. Focused crypto/game/poll suite: 47 PASS; the mechanics matrix covers 4,400 dealing cases and 360 simulated turns. Locked-ready editing and canonical/exact UUID regressions were corrected. Full candidate native-browser/hosted gates remain separately pending.
+Request-local PostgresStore persists room JSON, presence, durable quotas and private bytea photos. Atomic opaque version fences body/presence; game revision changes only for reducers. Compact matching-revision reads retain authentication/time/presence; autoPause/CAS and photo-proof renewal use full fresh state. No authoritative process-memory, phone or production disk fallback exists.
 
-Production uses Vercel Functions with request-local PostgresStore. SQL stores room JSON, presence, durable quota rows and private photo bytes. Atomic room version covers game changes and heartbeats; game revision changes only for reducer commits. Matching revisions use a SQL compact read; authentication and absence detection remain server-side, and only complete state may enter autoPause/CAS. Initial/changed state and photo-proof revalidation fetch full state.
+Rules remain those in README:2–12 players,1–20 cards each, required text/optional photos, balanced random dealing without own/duplicate cards,20 questions, confirmations, question/undo/pause, reconnect/management/creator absence, score/time ties and replay. Locked-ready editing and canonical/exact UUID regressions were fixed. Random draws use crypto rejection sampling/Fisher–Yates. Room expiry stays24 hours.
 
-The synthetic 12-player/240-card budget measured 4,361 bytes per compact SQL row and 893 bytes per unchanged HTTP response; full changed state and photos remain larger. Provisioned free allowances are finite: 1 GB storage, 100 CU-hours compute and 5 GB egress. This is not unlimited public capacity. Preserve 24-hour room expiry, daily cleanup and existing limits; do not silently lower game limits or authorize costs.
+Authenticated manual platform cleanup returned200 and unauthorized cleanup401. Daily04:00UTC schedule is deployed; no overnight invocation is claimed observed. Free capacity is finite:1GB storage,100CU-hours and5GB egress/month. Synthetic compact SQL row/unchanged response sizes are4,361/893 bytes; changed state and photos remain larger. No unlimited-capacity claim.
 
-## Preserve and finish
-
-Keep the same repository Raminyazdani/-bist-soali-dorehamI and Vercel project rooye-pishooni / prj_5ZbepebkVmFbJdiLzdiWlsArSypK, scope ramin-yazdanis-projects, fra1. DATABASE_URL is server-only; Production CRON_SECRET protects 04:00 UTC cleanup. Initialize idempotent schema with scripts/init-postgres.mjs using an explicitly supplied ignored env file. Never commit credentials, photos/session data or signed links; retain .vercelignore and inspect CLI dry-runs.
-
-Record the exact candidate source, run full unit/build/native suites, then actual Neon Preview game/photo/privacy/lobby/creator-away and cleanup checks. Merge/deploy only the tested head; verify complete stable-URL flows before declaring activation. Mobile browser contexts are not physical-phone tests. Honor Retry-After and do not weaken assertions or quotas.
-
-Game rules remain those in README: 2–12 players, 1–20 cards each, unbiased balanced dealing without own/duplicate cards, mandatory text/optional photos, 20 questions, confirmations, pause/undo/reconnect/management, score/time ranking and replay. Photos remain private bytea, checked through expiring per-player generation proofs and current card visibility. No authoritative process-memory, phone or production disk fallback.
-
-The original Vercel Blob store is untouched and suspended. Its data/old lobbies are not claimed migrated; create fresh rooms after the free release. Earlier PeerJS lobbies also remain historical. See VERIFICATION.md for separate historical Blob evidence and current candidate gates; docs/LOCAL_CONTINUATION.md is the current execution brief.
+Original Blob store/data remain untouched and suspended; old Blob/PeerJS lobbies were not migrated. Players should refresh and create fresh rooms. Historical failed boundaries remain separate in VERIFICATION.md. Resume with AGENTS.md/docs/LOCAL_CONTINUATION.md, preserving history, private data and free limits.

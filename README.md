@@ -2,9 +2,9 @@
 
 یک بازی فارسی بیست‌سؤالی برای دورهمی: هرکس با گوشی خودش، ورود با کد لابی، کارت متنی یا عکس‌دار و جدول امتیاز. بدون حساب، نصب یا لپ‌تاپ میزبان.
 
-[آدرس بازی](https://rooye-pishooni.vercel.app/) · [گزارش مشکل](https://github.com/Raminyazdani/-bist-soali-dorehamI/issues) · [تغییرات نسخهٔ عمومی](https://github.com/Raminyazdani/-bist-soali-dorehamI/pull/1)
+[آدرس بازی](https://rooye-pishooni.vercel.app/) · [گزارش مشکل](https://github.com/Raminyazdani/-bist-soali-dorehamI/issues) · [تغییرات نسخهٔ عمومی](https://github.com/Raminyazdani/-bist-soali-dorehamI/pull/2)
 
-**وضعیت انتشار — ۲۰۲۶-۱۰-۱۲:** طبق درخواست تازه، همین پروژه با بک‌اند رایگان Neon ادامه پیدا می‌کند. دیتابیس واقعی آماده است و ۴۳ آزمون زندهٔ ذخیره‌سازی موفق بوده‌اند؛ آزمون‌های کامل native، Preview و Production نسخهٔ تازه هنوز در انتظارند. آدرس اصلی فعلاً نسخهٔ قبلی با Blob معلق را اجرا می‌کند و قابل استفاده نیست. هیچ پرداخت یا ارتقای پولی انجام نشده است. وضعیت دقیق در [STATUS.md](STATUS.md) و [VERIFICATION.md](VERIFICATION.md) است.
+**وضعیت انتشار — ۲۰۲۶-۱۰-۱۲:** نسخهٔ رایگان با Neon روی [آدرس اصلی بازی](https://rooye-pishooni.vercel.app/) فعال شد. آزمون‌های کامل native، Preview و Production، عکس‌های خصوصی، قطع گوشی سازنده و پاک‌سازی دارای مجوز موفق بودند. هیچ پرداخت، trial یا ارتقای پولی انجام نشده است. همه صفحه را تازه کنند و لابی جدید بسازند. سهمیهٔ رایگان محدود است؛ شواهد دقیق در [VERIFICATION.md](VERIFICATION.md) و وضعیت در [STATUS.md](STATUS.md) ثبت شده‌اند.
 
 ## بازی چطور کار می‌کند؟
 

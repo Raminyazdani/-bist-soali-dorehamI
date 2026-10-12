@@ -1,109 +1,93 @@
-# Free Neon candidate verification — 2026-10-12 (Europe/Berlin)
+# Free Neon release verification — 2026-10-12 (Europe/Berlin)
 
-Latest user scope authorizes this same game's immediate free alternative and mechanics audit. The human directly accepted Neon terms. Candidate branch: fix/free-durable-storage. Exact candidate source has not yet been recorded. The stable URL still runs the suspended Blob backend and is currently unavailable. No payment, paid upgrade/trial or Vercel plan change was accepted.
+Status: complete. All four strict stable Production suites, six privacy boundaries, runtime-log review and authenticated manual cleanup passed. This is the same app/repository/project with a human-authorized free backend migration. Provider terms were accepted directly; no payment, trial or paid upgrade was made.
 
-| New candidate gate | Current evidence |
+Tested runtime:50f60243e6eaeb9127440141dc42b249915a2074.
+Merged PR:https://github.com/Raminyazdani/-bist-soali-dorehamI/pull/2.
+Master:bf886026e0cf14e4cfb9cc6fe1babd4bd9bbd06a, merged21:41:36.
+Stable:https://rooye-pishooni.vercel.app/.
+Production:dpl_7vZEwopPXvCCnQw3QCNiiuU3GBwM, READY, runtime identical to tested head.
+CI:[candidate38298355943](https://github.com/Raminyazdani/-bist-soali-dorehamI/actions/runs/38298355943) and [master38299331031](https://github.com/Raminyazdani/-bist-soali-dorehamI/actions/runs/38299331031), PASS.
+
+## Logic and actual provider
+
+| Gate | Verified result |
 | --- | --- |
-| Owned Neon resource | Active free_v3/fra1, cost Free, paymentMethodRequired=false; Preview/Production only, same database |
-| Actual database connection | SELECT 1 PASS |
-| Live provider adapter | Latest 43-check run PASS, 12 concurrent players, 600 KiB byte round trip, idempotency, version/presence races, compact reads, quotas/cleanup; 0 owned fixtures remain. Final provider rerun PASS, 43 checks, zero owned fixtures |
-| Focused crypto/game/poll | 47 PASS; 4,400 dealing cases and 360 turns; locked-ready and canonical/exact UUID regressions corrected |
-| Full unit suite | 77 total: 76 PASS, 1 explicit hosted skip, 0 failures |
-| Build | PASS, Vite 8.3.4 |
-| Full candidate native browser/photo/lobby/background | Pending |
-| Actual candidate Preview game/photo/privacy/lobby/creator-away/cleanup | Pending |
-| Exact tested-head merge / stable Production checks | Pending |
+| Unit suite | 77 total:76 PASS,1 explicit hosted-fixture skip,0 failures |
+| Build | PASS, Vite8.3.4 |
+| Separate actual Neon fixture run | 43 checksPASS;12 concurrent players,614400-byte private photo exact, idempotency/CAS/presence/manager races, compact reads, atomic quotas and scoped cleanup;0 owned fixtures remain |
+| Focused game/crypto/poll | 47 PASS;4,400 dealing cases and360 turns; locked-ready/canonical UUID regressions red before fixes and green after |
 
-New backend: request-local PostgresStore, server-only DATABASE_URL, room JSON and private bytea photos, atomic game revision plus presence/body version, durable quotas and 24-hour TTL/cascade cleanup. Compact matching-revision SQL never supplies an incomplete body to CAS/autoPause; fresh full reads still authenticate and provide expiring photo proofs. Closed/expired/kicked sessions and future-card access must remain rejected. Typed server environment/configuration is recorded without secret values.
-
-In-memory maximum-card sizing through the actual adapter/service measured 4,361 bytes compact SQL row and 893 bytes unchanged HTTP response. Changed state, initial/reload and photo-link revalidation remain full reads. Free 1 GB storage, 100 CU-hours compute and 5 GB egress are finite; the sizing result does not prove unlimited public capacity. No provider credentials/raw rooms/photos were printed. New full native/hosted gates must use exact candidate provenance; old Blob passes below do not verify Neon.
-
-Historical records below preserve failed/successful observations only. Their Blob-only, waiting and backend-freeze instructions are superseded by the current free-alternative authorization. The old Blob store/data were not changed or claimed migrated. Fresh rooms will be required after the new release. Mobile browser contexts are not physical-phone testing.
-
----
-# Historical Vercel Blob verification — 2026-10-12
-
-The final runtime passed native Windows and complete actual Vercel Preview verification, then was merged and deployed. Stable Production verification failed after Vercel suspended the private store for exceeded usage quota. The public game is currently unavailable; release completion is not claimed.
-
-Tested source: `5ff76753c0ef46985fc41ed18fb872e8cb87fdeb`.
-Merge/master: `d8133895783c8cbbfa24316b852e303056cd6166`.
-PR: https://github.com/Raminyazdani/-bist-soali-dorehamI/pull/1
-Stable URL: https://rooye-pishooni.vercel.app/
-Production: `dpl_DHsLuks9GoRY4qpaDjkjgRxAxb2B` (READY; runtime matches tested source).
-Feature CI: [38291118499](https://github.com/Raminyazdani/-bist-soali-dorehamI/actions/runs/38291118499), PASS.
-Master CI: [38293010587](https://github.com/Raminyazdani/-bist-soali-dorehamI/actions/runs/38293010587), PASS.
+Neon resource store_Sd3kFMmUOKStEBvc / square-sound-46294634 is active/available,free_v3/fra1,costFree,paymentMethodRequired=false,usageQuotaExceeded=false at21:46:59. Only Preview/Production are connected, with the same database. Team billing remains Hobby. SQL is authoritative; DATABASE_URL stays server-only. Private bytea photos retain the existing HMAC generation/expiry/membership/card-visibility checks. Opaque version covers body and presence; game revision tracks reducer commits. Compact rows authenticate but cannot enter CAS; missing-participant autoPause reloads full state first.
 
 ## Native Windows — PASS
 
-Windows, Node v24.13.1, npm 11.13.0, Playwright Chromium 141.0.7390.37 (build 1194). Final browser rerun used a clean isolated worktree at the exact tested source; E2E_URL was removed only inside each local test process.
+Exact50f60243 runtime, Windows/Node24.13.1/npm11.13.0/native Playwright Chromium; clean isolated worktree, real local HTTP/durable disk adapter.
 
-| Check | Result | Final interval, Europe/Berlin |
+| Suite | Scope / errors | Europe/Berlin interval |
 | --- | --- | --- |
-| npm test | PASS; 45 tests, 0 failures | Before final browser rerun |
-| npm run build | PASS; Vite 8.3.4 | 20:28:34 |
-| browser-e2e | PASS; 4 contexts, 12 turns, 12 checks, 0 browser errors | 20:28:44–20:29:56 |
-| photo-e2e | PASS; 2 contexts, 2 turns, 7 checks, 0 browser errors | 20:30:05–20:30:20 |
-| lobby-e2e | PASS; 3 contexts, 4 checks, 0 browser errors | 20:30:36–20:30:55 |
-| background-e2e | PASS; 3 contexts, 5 checks, 0 browser errors | 20:31:04–20:32:38 |
+| browser-e2e | 4 contexts,12 turns,12 checks,0 browser errors | 21:32:59–21:34:11 |
+| photo-e2e | 2 contexts,2 turns,7 checks,0 browser errors | 21:34:30–21:34:46 |
+| lobby-e2e | 3 contexts,4 checks,0 browser errors | 21:34:59–21:35:19 |
+| background-e2e | 3 contexts,5 checks,0 browser errors | 21:35:38–21:37:14 |
 
-These suites use actual HTTP with the durable local disk adapter. They cover mandatory text, real photos, balanced/unique assignments, confirmation/cancel/Escape, landscape, question/undo/pause, player/creator reload, scores/time ranking, scoreboard, replay and clean recreation. Photo tests reproduce picker/autosave races, link renewal, recipient reload and final images. Lobby tests cover kick before/during play, clean reset, transfer and closure. Background tests fully unload the creator, permit guest text/photo saves and takeover after 48 seconds, restart the local HTTP server with durable recovery, and continue questions/time/scoring while the creator remains away.
+All exit0; buildPASS at21:32:48. Exact-runtime RTL home, confirmation, landscape text/photo screenshots were visually inspected and contained; automated mobile flows reported no horizontal overflow.
 
-Baseline home/expanded-guide visuals passed at 320/390/768/1280 px without overflow; final home, landscape text/photo and sensitive-result screenshots were visually inspected. All tests use isolated mobile browser contexts, not physical phones.
+## Actual Preview — PASS
 
-## Actual Vercel Preview — PASS
+URL:https://rooye-pishooni-fbjxyxrt6-ramin-yazdanis-projects.vercel.app.
+Deployment:dpl_ExgQdfKDLZtvHRXeE4xsQDdPEqeG, exact50f60243 source; real Vercel Functions/Neon requests, no local disk server.
 
-URL: https://rooye-pishooni-ekkxbd89p-ramin-yazdanis-projects.vercel.app
-Deployment: `dpl_8riQogF9SmNQ4dYKx7F5Zh8iodUy` (READY).
-Source: `5ff76753c0ef46985fc41ed18fb872e8cb87fdeb`.
-Backend: Vercel Functions/private Vercel Blob, fra1; real deployed requests, no local disk server.
-
-| Hosted suite | Result | Interval, Europe/Berlin |
+| Suite | Scope / errors | Europe/Berlin interval |
 | --- | --- | --- |
-| browser-e2e | PASS; 4 players, 12 turns, 12 checks, 0 browser errors | 20:29:54–20:32:54 |
-| photo-e2e + privacy wrapper | PASS; 2 players, 2 turns, 6 photo checks plus 6 privacy boundaries, 0 browser errors | 20:33:24–20:33:56 |
-| lobby-e2e | PASS; 3 players, 4 checks, 0 browser errors | 20:34:17–20:34:54 |
-| background-e2e | PASS; 4 hosted checks, 0 browser errors | 20:35:06–20:36:55 |
+| browser-e2e | 4 players,12 turns,12 checks,0 browser errors | 21:33:48–21:35:18 |
+| photo-e2e + privacy | 2 players,2 turns,6 photo checks+6 privacy,0 browser errors | 21:36:08–21:36:26 |
+| lobby-e2e | 3 players,4 checks,0 browser errors | 21:36:59–21:37:19 |
+| background-e2e | 4 hosted checks,0 browser errors | 21:38:05–21:39:39 |
 
-The full game exercised concurrent join/readiness, required text, private photos, confirmation/cancel/Escape, undo/pause, reconnect/reload, all twelve balanced assignments/results, scoreboard, replay and leave/recreation. Photo tests covered both picker/autosave races, reload, landscape turns and final images. Lobby controls and creator-away guest writes, 48-second takeover, continued questions/time/scoring and final photos passed. The hosted suite does not perform the fifth local background check, local server restart. The seventh photo check, accelerated signed-link renewal, is local-only.
+All exit0. Runtime logs19:33:48–19:40:00UTC returned zero backend error records/diagnostics.
 
-| Room-free privacy boundary | Observed result |
+## Stable Production — PASS
+
+Exact merged master/runtime above, strict unchanged suites on the stable URL.
+
+| Suite | Scope / errors | Europe/Berlin interval | Seconds |
+| --- | --- | --- | ---: |
+| browser-e2e | 4 players,12 turns,12 checks,0 browser errors | 21:43:26–21:44:56 | 90.10 |
+| photo-e2e + privacy | 2 players,2 turns,6 photo checks+6 privacy,0 browser errors | 21:45:12–21:45:30 | 17.65 |
+| lobby-e2e | 3 players,4 checks,0 browser errors | 21:46:25–21:46:48 | 22.96 |
+| background-e2e | 4 hosted checks,0 browser errors | 21:47:11–21:48:48 | 96.92 |
+
+All exit0. Runtime logs19:43:26–19:49:15UTC returned zero backend error records/diagnostics. Production verification completed21:48:48.
+
+| Privacy boundary | Preview / Production |
 | --- | --- |
-| Valid participant photo | HTTP 200 |
-| Invalid participant token | HTTP 401, UNAUTHORIZED |
-| Tampered photo signature | HTTP 403, INVALID_PHOTO |
-| Tampered photo player | HTTP 403, INVALID_PHOTO |
-| Expired proof with recomputed valid HMAC | HTTP 403, INVALID_PHOTO |
-| Direct private Blob URL without authentication | HTTP 403 |
+| Valid participant photo | 200 /200 |
+| Invalid session token | 401 UNAUTHORIZED /401 UNAUTHORIZED |
+| Tampered photo signature | 403 INVALID_PHOTO /403 INVALID_PHOTO |
+| Tampered participant | 403 INVALID_PHOTO /403 INVALID_PHOTO |
+| Expired proof with recomputed valid HMAC | 403 INVALID_PHOTO /403 INVALID_PHOTO |
+| Direct Neon SQL without database credentials | 400 /400 |
 
-Privacy checks reused normal photo-suite responses in memory without extra rooms. Six lobbies were created across the suites; quotas/assertions stayed enabled. Read-only runtime logs for 18:29:54–18:37:00 UTC contained zero backend errors/diagnostics. E2E_URL was process-scoped and removed afterward. Completion at 20:36:55 proves operation then, not continued availability after suspension.
+The manual platform cron trigger at21:43:35.986 produced /api/cleanup HTTP200 at21:43:36.267 (1791834216267). Unauthorized cleanup returned401 at21:42:46.561 (1791834166561). Daily schedule0 4 * * * is deployed; this verifies manual authenticated invocation, without claiming an observed overnight scheduled run.
 
-## Stable Production — FAIL / BLOCKED
+Full browser suites covered concurrent admission/readiness, mandatory text, real private photos, confirmation/cancel/Escape, question/undo/pause, landscape, player/creator reload, all12 balanced/unique assignments/results, score/time ranking, scoreboard, replay, clean recreation and lobby controls. Creator-away fully unloaded the creator, permitted guest writes/takeover after48seconds and continued time/questions/scoring/final photos. The local fifth background check restarts the disk server; hosted counts correctly exclude it. Accelerated signed-link renewal is the local seventh photo check; hosted photo counts correctly remain6.
 
-PR #1 merged the exact tested head at 20:44:59. Git-source master deployed with zero runtime difference from the passing Preview. Config returned HTTP 200 and unauthenticated cleanup HTTP 401; neither proves a complete live game.
+Privacy checks reused normal photo-suite sessions without extra rooms. Quotas/assertions stayed enabled and E2E_URL was process-scoped. Tests use isolated mobile Chromium contexts, not physical phones. Raw credentials, rooms/photos, signed links and screenshots remain ignored/excluded by .vercelignore.
 
-| Check | Observed result |
+Free capacity is finite:1GB storage,100CU-hours and5GB egress/month. The synthetic maximum-card fixture measured compactSQLrow4,361 bytes/unchanged HTTP893 bytes. Changed state, initial/reload and photo-proof revalidation fetch full state; photo bytes/cleanup add usage. This is not an unlimited-capacity guarantee. Players refresh/start fresh rooms; old store/data were not deleted or claimed migrated.
+
+## Historical Blob attempts — observations only
+
+These records describe the previous provider/runtime, not current availability or instructions. The latest free-alternative authorization superseded Blob-only/wait restrictions.
+
+| Previous source / deployment | Observed result |
 | --- | --- |
-| browser-e2e, 20:47:44–20:48:20 | FAIL, exit 1, 35.98 s; initial creator request returned 503 SERVICE_UNAVAILABLE |
-| Completed checks / turns / browser errors | 0 / 0 / 0; no successfully created lobby observed |
-| Photo/privacy, lobby, background | Not started after first failure |
-| Authenticated platform cron trigger | HTTP 503; cleanup not verified |
+| f37f71d /dpl_GvuHNis53yPRRdXx72Z2MAAXDVUN,19:46:26–19:47:52 | Fourth join BUSY; compressed weak ETag caused CAS rejection. Four large payload diagnostics failed compressed reads and passed identity reads. |
+| e592ab1 /dpl_9shcGYrN4TYscPAaTWebYm2FPPLY,20:00:42–20:02:33 | State503 after7/12 turns; added bounded provider diagnostics. |
+| d715588 /dpl_4XgEMbgf2Q64mYxDbx2FcVhM22FC,20:10:21–20:11:06 | Initial photo503,0 turns;6 plain BlobError records. |
+| 5f2775b /dpl_GYUkfmTutbUA5ZZPrBUUXTcioCLo,20:23:23–20:24:50 | State503 after4/12 turns; exact SDK conditional-operation conflict required narrow CAS-retry recognition. |
+| 5ff76753c0ef46985fc41ed18fb872e8cb87fdeb /dpl_8riQogF9SmNQ4dYKx7F5Zh8iodUy |45 units/build/native12/7/4/5 and hosted12/6/4/4+privacy6 PASS; Preview complete20:36:55. |
+| d8133895783c8cbbfa24316b852e303056cd6166 /dpl_DHsLuks9GoRY4qpaDjkjgRxAxb2B | PR#1 merged; first Production create failed503 at20:47:44–20:48:20 (35.98s),0 turns; authenticated cleanup503; remaining suites stopped. |
 
-The initial browser timed out at test/browser-e2e.mjs:49 waiting for [data-action=readyLobby]. Read-only runtime logs for 18:47:44–18:48:25 UTC recorded two backend 503 responses with genuine SDK BlobError, Blob GET HTTP 403, `Vercel Blob: Failed to fetch blob: 403 Forbidden`. Authenticated cleanup also failed at storage access. The initial authentication/binding hypothesis was superseded by authoritative store evidence.
-
-Authenticated v1 metadata returned `status=limits-exceeded-suspended`, `billingState=suspended`, `usageQuotaExceeded=true`, `isTokenExpired=false`, and correct Preview/Production binding for private `store_aI18UxfGKbZ3F7x1` / `rooye-pishooni-private`, fra1. Its `updatedAt=1791830328879` is 20:38:48.879 Europe/Berlin, after Preview completion. Direct SDK GET returned HTTP 403, `Your store is blocked`. Read-only dashboard inspection states access resumes **2026-11-11**. Own-store counters are below the displayed included allowances; the exact exhausted team/account quota category has not been established. STATUS.md records the counters, current [official Hobby policy](https://vercel.com/docs/vercel-blob/usage-and-pricing) and required user decision.
-
-Production CRON_SECRET is configured. Sensitive env export intentionally omits the value and does not prove an empty runtime key. Daily cleanup is configured at 04:00 UTC, but no successful authenticated cleanup or scheduled run is claimed. No paid upgrade/trial, payment/new terms, replacement store, reset/deletion or key rotation occurred. Blocked tests are stopped pending a user decision/provider-state change.
-
-## Earlier failed attempts and corrected boundaries
-
-| Exact source / deployment | Observed failure | Correction or outcome |
-| --- | --- | --- |
-| f37f71d30a61555e1ba513fdb275bb2db07c0e9a / dpl_GvuHNis53yPRRdXx72Z2MAAXDVUN, 19:46:26–19:47:52 | Fourth join remained BUSY; 0 turns | Four live large-JSON sizes failed CAS with compressed weak ETags and passed identity reads; retain body/strong version in one response and reject stale writes. |
-| e592ab181f5345cbf9d6ed977182170ec7459ebd / dpl_9shcGYrN4TYscPAaTWebYm2FPPLY, 20:00:42–20:02:33 | State HTTP 503 after 7/12 turns | Added bounded sanitized diagnostics; assertions/retries unchanged. |
-| d715588f0d893ed64a1240089b49a4b8d84c7728 / dpl_4XgEMbgf2Q64mYxDbx2FcVhM22FC, 20:10:21–20:11:06 | Initial photo upload HTTP 503; 0 turns; 6 plain BlobError records | Continued exact provider diagnosis. |
-| 5f2775b929b5d860815d8d16ee5aaf2ac8f0ce0a / dpl_GYUkfmTutbUA5ZZPrBUUXTcioCLo, 20:23:23–20:24:50 | State HTTP 503 after 4/12 turns | Genuine SDK BlobError's exact conditional-operation conflict needed narrow recognition in bounded fresh-state/CAS retry. |
-| 5ff76753c0ef46985fc41ed18fb872e8cb87fdeb / dpl_8riQogF9SmNQ4dYKx7F5Zh8iodUy | All four hosted suites plus privacy passed | Corrected provider behavior verified in complete real play. |
-
-Provider regressions failed before fixes and passed afterward. Conflict handling preserves a competing update, commits an action once, rejects stale body/version and propagates unrelated SDK errors. A separate Windows atomic-replace sharing violation was fixed only in the local disk adapter with bounded EPERM/EACCES/EBUSY retries; production behavior/concurrency assertions were unchanged. Test counts progressed 42 → 43 → 44 → 45; final verified runtime has 45.
-
-Earlier PeerJS/WebRTC releases are historical and do not verify current server-backed code. Raw logs/screenshots and room/session/private-photo data remain outside committed reports in ignored test-output. .vercelignore excludes these and local env files from CLI uploads. Preserve the existing repository/project/store and rerun complete stable-URL suites, privacy and authenticated cleanup after access returns.
+Historical provider metadata proved limits-exceeded-suspended/billingState suspended/usageQuotaExceeded true/isTokenExpired false/correct binding, updated20:38:48.879 after Preview. SDK returned403, Your store is blocked; dashboard stated2026-11-11 return. Which team/account quota exhausted was not established. Original Blob store/data remain untouched. Prior PeerJS/WebRTC evidence is also historical and does not verify this Neon runtime.
