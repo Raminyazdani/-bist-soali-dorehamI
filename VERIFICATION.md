@@ -31,7 +31,7 @@ Mutable JSON now requests identity encoding. New provider regression fails befor
 - Corrected native browser suites on e592ab1: PASS, 12/7/4/5 checks, zero browser errors.
 - Corrected hosted Preview and public Production: pending.
 
-Corrected Preview dpl_9shcGYrN4TYscPAaTWebYm2FPPLY resolved the weak-ETag defect: all four players joined and seven turns completed, including real photos, confirmations and reloads. An observer then received 503 SERVICE_UNAVAILABLE on a state read; the remaining suites stopped. Existing logs reported only Error, so bounded SDK class/code/numeric status metadata now identifies unexpected failures while omitting arbitrary messages, URLs and credentials. The focused privacy regression and full 44-test suite pass. No read retry was changed merely to bypass the failure.
+Corrected Preview dpl_9shcGYrN4TYscPAaTWebYm2FPPLY resolved the weak-ETag defect: all four players joined and seven turns completed, including real photos, confirmations and reloads. An observer then received 503 SERVICE_UNAVAILABLE on a state read; the remaining suites stopped. Diagnostic Preview dpl_4XgEMbgf2Q64mYxDbx2FcVhM22FC failed at photo upload and identified generic BlobError without transport/GET status. Direct concurrent provider CAS diagnostics produced only expected precondition conflicts. SDK-only reason diagnostics now redact configured credentials, URLs, bearer/session/proof values and identifiers; non-SDK messages remain excluded. The expanded privacy regression and full 44-test suite pass. No retry/assertion was changed merely to bypass the failure.
 
 ## Release gate
 

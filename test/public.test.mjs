@@ -98,9 +98,34 @@ test('unexpected backend diagnostics identify SDK failures without exposing mess
   const request={method:'POST',headers:{host:'example.invalid','content-type':'application/json'},body:{type:'state'}};
   await gameRequest(request,response,{configured:()=>true,get:async()=>{throw failure;}});
   assert.equal(response.statusCode,503);
-  assert.deepEqual(logs[0],['Game backend:',{kind:'BlobError',code:'UND_ERR_SOCKET',causeCode:'UND_ERR_CONNECT_TIMEOUT',httpStatus:502}]);
+  assert.deepEqual(logs[0],['Game backend:',{kind:'BlobError',code:'UND_ERR_SOCKET',causeCode:'UND_ERR_CONNECT_TIMEOUT',httpStatus:502,reason:'Vercel Blob: Failed to fetch blob: 502 Bad Gateway [redacted URL]'}]);
   const unsafe=Object.assign(new Error('private-room-and-token'),{code:'https://private.invalid/token=secret',cause:{code:'token=secret'}});
   await gameRequest(request,response,{configured:()=>true,get:async()=>{throw unsafe;}});
   assert.deepEqual(logs[1],['Game backend:',{kind:'Error',code:'',causeCode:''}]);
   assert.ok(!JSON.stringify(logs).includes('secret'));
+  const environment={BLOB_READ_WRITE_TOKEN:process.env.BLOB_READ_WRITE_TOKEN,CRON_SECRET:process.env.CRON_SECRET,VERCEL_OIDC_TOKEN:process.env.VERCEL_OIDC_TOKEN};
+  process.env.BLOB_READ_WRITE_TOKEN='short-env-blob-credential';process.env.CRON_SECRET='short env cron credential';process.env.VERCEL_OIDC_TOKEN='short-env-oidc-credential';
+  try{
+    for(const [sample,sensitive]of[
+      ['credential '+process.env.BLOB_READ_WRITE_TOKEN,process.env.BLOB_READ_WRITE_TOKEN],
+      ['credential '+process.env.CRON_SECRET,process.env.CRON_SECRET],
+      ['credential '+encodeURIComponent(process.env.CRON_SECRET),encodeURIComponent(process.env.CRON_SECRET)],
+      ['credential '+process.env.VERCEL_OIDC_TOKEN,process.env.VERCEL_OIDC_TOKEN],
+      ['https://private.invalid/photo?signature=short-proof','https://private.invalid'],
+      ['Bearer short-bearer-value','short-bearer-value'],
+      ['Bearer "short quoted credential"','short quoted credential'],
+      ['token=short-session-value','short-session-value'],
+      ['"signature": "short-proof-value"','short-proof-value'],
+      ['secret="short secret value"','short secret value'],
+      ['12345678-1234-1234-1234-123456789012','12345678-1234-1234-1234-123456789012'],
+      ['eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzZXNzaW9uIn0.c2lnbmF0dXJl','eyJhbGciOiJIUzI1NiJ9'],
+      ['aB1234567890_-aB1234567890_-aB1234567890_','aB1234567890_-aB1234567890_-aB1234567890_']
+    ]){
+      const failure=new BlobError('Static provider reason; '+sample);
+      await gameRequest(request,response,{configured:()=>true,get:async()=>{throw failure;}});
+      const diagnostic=logs.at(-1)[1];assert.equal(diagnostic.kind,'BlobError');
+      assert.ok(diagnostic.reason.includes('Static provider reason'));assert.ok(diagnostic.reason.length<=200);
+      assert.ok(!JSON.stringify(diagnostic).includes(sensitive));
+    }
+  }finally{for(const [key,value]of Object.entries(environment)){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
 });
