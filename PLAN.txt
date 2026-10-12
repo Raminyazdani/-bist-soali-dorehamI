@@ -1,3 +1,10 @@
+HISTORICAL PLAN — superseded on 2026-10-12
+The phone/PeerJS architecture and release-complete statements below describe
+the earlier version. Current code uses Vercel Functions and private Blob.
+PR #1 is merged and native/real Preview tests pass, but playable Production
+is blocked by provider quota suspension. Read STATUS.md and VERIFICATION.md
+for current evidence and docs/LOCAL_CONTINUATION.md for the next action.
+
 FOREHEAD / روی پیشونی — implementation plan, 2026-10-10
 
 Goal: a complete Persian mobile party game usable today, deployed to the user's
