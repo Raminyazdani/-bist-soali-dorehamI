@@ -1,3 +1,17 @@
+# Hosted access check — 2026-10-12
+
+The public-source checkpoint is e9f221aa2c79d8bdd40075655e5022c1541c5677; runtime is 90262609393b7c67e30100c8685fd2cbb68290bc. GitHub Checks run 38183724491 also completed successfully on the docs checkpoint. All local implementation/verification is done; no release has been merged.
+
+Preview dpl_AWfasZzgj3YUK1BL1ByrxCiqv4Em built READY from e9f221a at https://rooye-pishooni-6kzb5ehkl-ramin-yazdanis-projects.vercel.app. Actual POST /api/game config on Oct 12 returns HTTP 503 SERVICE_NOT_CONFIGURED. Static build success does not make it playable. The native storage/env requests previously returned 403; do not retry them unchanged. No Vercel CLI credentials were created.
+
+The second secure browserAuth request timed out without a result. Input or success is unknown, never infer no credentials were submitted. Required fresh target-origin verification was attempted through a new agent tab to https://vercel.com; that browser call also timed out and reset its kernel. The authenticated browser state therefore cannot be verified. Do not repeatedly request the same sign-in or ask for credentials in chat. Do not tell the user that their own browser login would sign this browser in. Preserve these results and explain the exact access gate; storage/project env configuration and real hosted verification are still necessary before merge.
+
+Vercel plugin discovery confirms it is already installed and ENABLED. ChatGPT plugin permission settings do not grant Vercel OAuth/admin scopes; do not change them as a supposed fix. Official CLI device authentication is being prepared as a last distinct access path (Vercel documents approval from another device); no new credentials have been obtained. Never publish its transient pairing data or any credential.
+
+The remaining plan: obtain a working authorized Vercel connection for private Blob/project env management; provision private storage and server-only environment in Preview/Production; test actual hosted text/photo/game/creator absence; merge PR #1 and check stable URL. The prior prohibition on merge was superseded, but the broken hosted backend must not be released.
+
+---
+
 # Public release — latest user scope (2026-10-12, Europe/Berlin)
 
 User now wants the game publicly presented on their GitHub and Vercel. Merge/publication are authorized after tests, replacing the earlier hold. Read docs/SUPERPROMPT.md for the concrete execution brief. The linked Windows superprompt skill is not available in this environment; do not claim it ran. No subagents requested.

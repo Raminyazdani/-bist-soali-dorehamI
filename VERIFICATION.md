@@ -1,3 +1,5 @@
+Hosted check on 2026-10-12: deployment dpl_AWfasZzgj3YUK1BL1ByrxCiqv4Em is READY for e9f221aa2c79d8bdd40075655e5022c1541c5677; actual API config returns **503 SERVICE_NOT_CONFIGURED**. GitHub Checks run 38183724491 is success. Secure login result remains unknown after the request and the required fresh browser verification both timed out. Release has not been merged or declared playable.
+
 # Public release candidate — 2026-10-11T23:14:10.969186+00:00
 
 The user now authorizes public GitHub/Vercel release after verification. Windows superprompt skill was unavailable; the execution brief is docs/SUPERPROMPT.md. This checkpoint does not claim a successful hosted backend test.
