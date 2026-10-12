@@ -14,6 +14,6 @@ Initial native Windows checks passed on f37f71d: 42 tests, build and four browse
 
 A provider regression fails on the old implementation and verifies large-state CAS plus stale-write rejection. Expanded native tests exposed transient Windows rename sharing violations; bounded Windows-only retries preserve atomic disk replacement. Production never uses that adapter.
 
-Corrected unit/build: 43 tests PASS, build PASS. Fresh native browser reruns and corrected hosted Preview verification are in progress. This candidate is not merged or publicly released yet; master serves the previous architecture. See VERIFICATION.md.
+Corrected native browser suites all PASS on e592ab1: 12/7/4/5 checks and zero browser errors. The corrected hosted run admitted four players, exercised photos/confirmations/reloads and completed seven turns before an unexpected storage read returned 503. Later suites stopped. Safe class/status diagnostics were added without logging private data or changing retry behavior; 44 tests and build PASS. Hosted verification must still pass before merge/public release. Master serves the previous architecture; see VERIFICATION.md.
 
 Preserve game rules and the minimal architecture. No authoritative phone/process memory or disk fallback in production. Rooms expire after 24 hours; photos are private with server-checked card visibility. Earlier PeerJS lobbies are not migrated; the server release starts fresh v3 rooms.

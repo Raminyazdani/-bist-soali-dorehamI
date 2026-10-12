@@ -8,6 +8,7 @@ import {fileBlob} from '../scripts/file-blob.mjs';
 import {createRoom} from '../lib/game.mjs';
 import {photoLink,verifyPhoto} from '../lib/security.mjs';
 import {gameRequest} from '../lib/http.mjs';
+import {BlobError} from '@vercel/blob';
 
 async function disk(t){
   const directory=await mkdtemp(join(tmpdir(),'forehead-public-'));t.after(()=>rm(directory,{recursive:true,force:true}));
@@ -87,4 +88,19 @@ test('large mutable JSON reads preserve an atomic strong ETag and reject stale w
   const committed=await new BlobStore({sdk:provider}).get(room.id);
   assert.equal(committed.state.cardsPerPlayer,2);assert.equal(committed.state.players[0].ready,true);assert.equal(committed.revision,2);
   assert.deepEqual(committed.state.requests,room.requests);
+});
+
+test('unexpected backend diagnostics identify SDK failures without exposing messages or unsafe fields',async t=>{
+  const logs=[];t.mock.method(console,'error',(...values)=>logs.push(values));
+  const failure=new BlobError('Failed to fetch blob: 502 Bad Gateway https://private.invalid/token=secret');
+  Object.assign(failure,{code:'UND_ERR_SOCKET',cause:{code:'UND_ERR_CONNECT_TIMEOUT'}});
+  const response={setHeader(){},end(){}};
+  const request={method:'POST',headers:{host:'example.invalid','content-type':'application/json'},body:{type:'state'}};
+  await gameRequest(request,response,{configured:()=>true,get:async()=>{throw failure;}});
+  assert.equal(response.statusCode,503);
+  assert.deepEqual(logs[0],['Game backend:',{kind:'BlobError',code:'UND_ERR_SOCKET',causeCode:'UND_ERR_CONNECT_TIMEOUT',httpStatus:502}]);
+  const unsafe=Object.assign(new Error('private-room-and-token'),{code:'https://private.invalid/token=secret',cause:{code:'token=secret'}});
+  await gameRequest(request,response,{configured:()=>true,get:async()=>{throw unsafe;}});
+  assert.deepEqual(logs[1],['Game backend:',{kind:'Error',code:'',causeCode:''}]);
+  assert.ok(!JSON.stringify(logs).includes('secret'));
 });

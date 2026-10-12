@@ -24,12 +24,14 @@ Four live private Blob payload sizes reproduced compressed JSON GET returning a 
 
 Mutable JSON now requests identity encoding. New provider regression fails before the fix and passes after, including stale-write rejection and state preservation. Expanded native tests also reproduced transient Windows sharing errors during disk replacement; bounded retries fix only the local adapter.
 
-- Corrected npm test: **43 passed, 0 failed**.
+- Corrected npm test: **43 passed, 0 failed**; safe-diagnostics revision: **44 passed, 0 failed**.
 - Corrected build: PASS.
 - Unchanged 12-player concurrent HTTP test: PASS after the Windows fix.
 - git diff --check: PASS.
-- Corrected native browser suites: in progress.
+- Corrected native browser suites on e592ab1: PASS, 12/7/4/5 checks, zero browser errors.
 - Corrected hosted Preview and public Production: pending.
+
+Corrected Preview dpl_9shcGYrN4TYscPAaTWebYm2FPPLY resolved the weak-ETag defect: all four players joined and seven turns completed, including real photos, confirmations and reloads. An observer then received 503 SERVICE_UNAVAILABLE on a state read; the remaining suites stopped. Existing logs reported only Error, so bounded SDK class/code/numeric status metadata now identifies unexpected failures while omitting arbitrary messages, URLs and credentials. The focused privacy regression and full 44-test suite pass. No read retry was changed merely to bypass the failure.
 
 ## Release gate
 
