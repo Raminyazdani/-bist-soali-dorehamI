@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {resolve,extname,relative,isAbsolute,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {BlobStore} from '../lib/blob-store.mjs';
+import {PostgresStore} from '../lib/postgres-store.mjs';
 import {cleanupRequest,gameRequest,photoRequest} from '../lib/http.mjs';
 import {fileBlob} from './file-blob.mjs';
 
@@ -10,7 +11,7 @@ export function localServer({directory,cleanupSecret,root=fileURLToPath(new URL(
   const sdk=directory?fileBlob(directory):undefined;
   return createServer(async(req,res)=>{
     const pathname=new URL(req.url,'http://localhost').pathname;
-    const store=new BlobStore(sdk?{sdk}:{});
+    const store=sdk?new BlobStore({sdk}):new PostgresStore();
     if(pathname==='/api/game')return gameRequest(req,res,store);
     if(pathname==='/api/photo')return photoRequest(req,res,store);
     if(pathname==='/api/cleanup')return cleanupRequest(req,res,store,cleanupSecret);

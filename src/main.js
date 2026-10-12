@@ -73,7 +73,8 @@ async function api(body, retry = true) {
   try {
     const data = await transport.request(body);
     lastContact = Date.now();
-    if (data.snapshot) offset = data.snapshot.serverNow - (started + Date.now())/2;
+    const serverNow = data.snapshot?.serverNow ?? data.unchanged?.serverNow;
+    if (serverNow !== undefined) offset = serverNow - (started + Date.now())/2;
     return data;
   } catch (error) {
     if (retry && (!error.code || ['SERVICE_UNAVAILABLE','BUSY'].includes(error.code)) && navigator.onLine) {
@@ -127,7 +128,18 @@ async function sync(silent = true) {
   if (syncing) { syncAgain = true; return; }
   syncing = true;
   try {
-    const result = await api({ type:'state', ...authData() }); accept(result.snapshot);
+    const visiblePhotos = [...(state?.ownCards??[]),state?.turn?.card,...(state?.completedCards??[]).map(r=>r.card)].filter(c=>c?.imageUrl?.startsWith('/api/photo?'));
+    const needsPhotoRefresh = visiblePhotos.some(c=>Number(new URL(c.imageUrl,location.href).searchParams.get('expires')) <= clock()+120000) ||
+      [...app.querySelectorAll('img')].some(img=>img.complete&&!img.naturalWidth&&img.getAttribute('src')?.startsWith('/api/photo?'));
+    const result = await api({ type:'state', ...authData(), ...(state&&!needsPhotoRefresh?{knownRevision:state.revision}:{}) });
+    if (result.snapshot) accept(result.snapshot);
+    else if (result.unchanged && state) {
+      const current=result.unchanged;
+      if(current.id===state.id&&current.you===state.you&&current.revision===state.revision&&current.generation===state.generation){
+        const online=new Map(current.players.map(p=>[p.id,p.online]));
+        accept({...state,serverNow:current.serverNow,players:state.players.map(p=>({...p,online:online.get(p.id)??p.online}))});
+      } else syncAgain=true;
+    }
   } catch (error) {
     if (['UNAUTHORIZED','EXPIRED','NOT_FOUND','ROOM_CLOSED','REMOVED'].includes(error.code)) { leaveLocal(); toast(error.message); }
     else if (!silent) toast(error.message || 'اینترنت قطع است؛ جای تو در بازی محفوظ می‌ماند.');
