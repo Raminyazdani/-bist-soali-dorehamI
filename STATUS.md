@@ -1,3 +1,15 @@
+# Local-machine handoff — latest request, 2026-10-12 Europe/Berlin
+
+The user now wants a complete ZIP and one-shot execution prompt to resume this same project in a new empty local ChatGPT Work workspace. Do not keep provisioning in this cloud session. Public merge/release remains authorized after real hosted tests; the earlier no-merge hold is historical. See docs/LOCAL_CONTINUATION.md and the transfer package's root prompt/state.
+
+Minimal Windows portability fixes are included: fileURLToPath for file URLs, native path containment, forward-slash Blob listing names, and valid screenshot paths. npm test is now 42/42 PASS; build and the two-phone photo E2E (7 checks, 0 browser errors) PASS on Linux. Native Windows has not been executed here; rerun on the destination. Earlier full 4-phone/12-turn, lobby and creator-away evidence is preserved and must also be rerun before hosted release.
+
+The prior cloud CLI login is not confirmed and is not portable. Ignore its device pairing values, process IDs, cached executable paths and /tmp profiles on the new machine. Reuse verified authentication already on that machine, or start its own supported sign-in flow. Never transfer credentials or private test room/photo data. The private hosted backend is still unconfigured (last real preview config: HTTP 503 SERVICE_NOT_CONFIGURED). Do not equate READY deployment/CI/build with a playable server.
+
+Baseline before portability: feature e39f2effa124d98111de73839b2f06973cea6406; master 9940265e51e619109cf06830dd76756dc4f26770. GitHub Checks on that feature: run 38253741274 success. Reconcile fresh remote refs and retain newer changes rather than resetting to an old hash. The new transfer manifest pins its exact source checkpoint.
+
+---
+
 # Hosted access check — 2026-10-12
 
 The public-source checkpoint is e9f221aa2c79d8bdd40075655e5022c1541c5677; runtime is 90262609393b7c67e30100c8685fd2cbb68290bc. GitHub Checks run 38183724491 also completed successfully on the docs checkpoint. All local implementation/verification is done; no release has been merged.

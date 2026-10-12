@@ -1,14 +1,14 @@
 // Durable disk adapter for local development/tests only. Production uses the
 // real private Vercel Blob SDK; it never falls back to disk or process memory.
 import {mkdir,readFile,writeFile,rename,unlink,readdir,stat} from 'node:fs/promises';
-import {dirname,join,resolve} from 'node:path';
+import {dirname,join,resolve,relative,isAbsolute,sep} from 'node:path';
 import {randomUUID,createHash} from 'node:crypto';
 const queues=new Map();
 const etag=bytes=>createHash('sha256').update(bytes).digest('hex');
 const error=code=>Object.assign(new Error(code),{code});
 export function fileBlob(directory) {
   const root=resolve(directory);
-  const path=name=>{const result=resolve(root,name);if(!result.startsWith(root+'/'))throw error('BAD_PATH');return result;};
+  const path=name=>{const result=resolve(root,name),inside=relative(root,result);if(!inside||inside==='..'||inside.startsWith('..'+sep)||isAbsolute(inside))throw error('BAD_PATH');return result;};
   async function serial(fn) { const previous=queues.get(root)??Promise.resolve();const current=previous.then(fn);queues.set(root,current.catch(()=>{}));return current; }
   async function read(name) { try{return await readFile(path(name));}catch(e){if(e.code==='ENOENT')return null;throw e;} }
   return {
@@ -19,7 +19,7 @@ export function fileBlob(directory) {
         for(const entry of entries){
           const target=join(directory,entry.name);
           if(entry.isDirectory())await walk(target);
-          else if(!entry.name.endsWith('.tmp'))names.push(target.slice(root.length+1));
+          else if(!entry.name.endsWith('.tmp'))names.push(relative(root,target).split(sep).join('/'));
         }
       }
       await walk(root);

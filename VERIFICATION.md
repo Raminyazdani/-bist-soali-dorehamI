@@ -1,3 +1,19 @@
+# Local-handoff portability checks — 2026-10-12
+
+Minimal path fixes preserve game rules and production APIs. Local static/durable storage use platform-native path containment; URL paths use fileURLToPath; Blob listings always use forward slashes. E2E screenshot paths work with native file paths. New tests check traversal/root rejection, prefix/cursor listing, and HTTP assets under spaces/Persian directory names.
+
+- npm test: **42 passed, 0 failed**.
+- npm run build: PASS.
+- node test/photo-e2e.mjs: PASS, 7 checks, 0 browser errors, hostedBuild=false. Includes real picker/images/reload/scoreboard and signed-link renewal.
+- git diff --check: PASS.
+- Node 24.19 literal test glob was verified without shell expansion; npm test works with its existing command.
+- Native Windows: NOT RUN here. The destination agent must rerun the complete local and real-hosted flows.
+- Prior baseline GitHub Checks run 38253741274 is success on e39f2ef. It is separate from the new portability checkpoint.
+
+No hosted storage was configured or deployment promoted while preparing this handoff.
+
+---
+
 Hosted check on 2026-10-12: deployment dpl_AWfasZzgj3YUK1BL1ByrxCiqv4Em is READY for e9f221aa2c79d8bdd40075655e5022c1541c5677; actual API config returns **503 SERVICE_NOT_CONFIGURED**. GitHub Checks run 38183724491 is success. Secure login result remains unknown after the request and the required fresh browser verification both timed out. Release has not been merged or declared playable.
 
 # Public release candidate — 2026-10-11T23:14:10.969186+00:00

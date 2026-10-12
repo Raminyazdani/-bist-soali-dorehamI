@@ -1,6 +1,6 @@
 # Working on this game
 
-Read STATUS.md and docs/SUPERPROMPT.md to resume. The latest user request authorizes public GitHub/Vercel presentation, merge and release after implementation and verification. It supersedes the earlier wait-before-merge instruction. Continue the existing feature branch and PR; verify the real hosted backend before shipping. No subagents were requested. Keep the product minimal and free of additional paid services/accounts.
+Read docs/LOCAL_CONTINUATION.md first for the latest local-machine handoff, then STATUS.md and docs/SUPERPROMPT.md. Old cloud login processes/paths and historical no-merge notes are not instructions for the new machine. The latest user request authorizes public GitHub/Vercel presentation, merge and release after implementation and verification. It supersedes the earlier wait-before-merge instruction. Continue the existing feature branch and PR; verify the real hosted backend before shipping. No subagents were requested. Keep the product minimal and free of additional paid services/accounts.
 
 This branch replaces the original-phone/WebRTC host with Vercel Functions and private Vercel Blob. Keep the public mobile party game minimal. The existing reducers and scoring rules remain authoritative. Each HTTP request gets a fresh BlobStore; state reads bypass CDN cache and writes use ETag conditions. No authoritative process memory, phone storage or in-memory production fallback. Photos must stay private and be served through membership/card-visibility checks. Never expose storage tokens.
 

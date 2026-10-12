@@ -4,7 +4,7 @@ import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {localServer} from '../scripts/server.mjs';
 
 const base=process.env.E2E_URL||'http://127.0.0.1:5183';
-const root=new URL('../dist/',import.meta.url),output=new URL('../test-output/',import.meta.url);
+const output=new URL('../test-output/',import.meta.url);
 let server=process.env.E2E_URL?null:localServer({directory:'test-output/rooms-5183'});
 if(server)await new Promise(resolve=>server.listen(5183,'127.0.0.1',resolve));
 const proxy=process.env.HTTPS_PROXY;

@@ -1,3 +1,4 @@
+import {fileURLToPath} from 'node:url';
 // Regression: a native photo picker can outlive a lobby render on mobile.
 // Both phones must receive the other author's photo over actual HTTP backend.
 import {chromium} from 'playwright';
@@ -9,7 +10,7 @@ import {fileBlob} from '../scripts/file-blob.mjs';
 import {photoLink} from '../lib/security.mjs';
 
 const base=process.env.E2E_URL||'http://127.0.0.1:5181';
-const root=new URL('../dist/',import.meta.url),output=new URL('../test-output/',import.meta.url);
+const output=new URL('../test-output/',import.meta.url);
 const server=process.env.E2E_URL?null:localServer({directory:'test-output/rooms-5181'});
 if(server)await new Promise(resolve=>server.listen(5181,'127.0.0.1',resolve));
 const proxy=process.env.HTTPS_PROXY;
@@ -74,7 +75,7 @@ try{
       assert.equal(await page.evaluate(()=>window.photoEditorBefore===document.querySelector('textarea')),true);
       checks.push('an expiring photo link renews during unchanged-state polling without replacing the editor');
     }
-    await page.screenshot({path:new URL(`photo-author-${i}.png`,output).pathname,fullPage:true});
+    await page.screenshot({path:fileURLToPath(new URL(`photo-author-${i}.png`,output)),fullPage:true});
   }
   await Promise.all(pages.map(page=>click(page,'[data-do=cards-ready]')));
   const playerIds=await Promise.all(pages.map(page=>page.evaluate(()=>JSON.parse(localStorage.getItem('forehead-session-v3')).playerId)));
@@ -89,7 +90,7 @@ try{
     assert.equal(current.turn.card.id,cardIds[1-playerIds.indexOf(state.turn.playerId)]);
     await guesser.setViewportSize({width:844,height:390});
     assert.equal(await guesser.locator('.head-card img').isVisible(),true);
-    await guesser.screenshot({path:new URL(`photo-recipient-${turn}.png`,output).pathname,fullPage:true});
+    await guesser.screenshot({path:fileURLToPath(new URL(`photo-recipient-${turn}.png`,output)),fullPage:true});
     if(guesser===pages[1]){
       await guesser.reload();await guesser.locator('#app[data-phase=playing]').waitFor({timeout:35000});
       if((await read(referee)).turn.status==='paused')await click(referee,'[data-action=resume]');
@@ -115,6 +116,6 @@ try{
   await writeFile(new URL('photo-results.json',output),JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));
 }catch(error){
   await writeFile(new URL('photo-results.json',output),JSON.stringify({passed:false,base,error:error.stack,checks,errors},null,2));
-  for(let i=0;i<pages.length;i++)await pages[i].screenshot({path:new URL(`photo-failure-${i}.png`,output).pathname,fullPage:true}).catch(()=>{});
+  for(let i=0;i<pages.length;i++)await pages[i].screenshot({path:fileURLToPath(new URL(`photo-failure-${i}.png`,output)),fullPage:true}).catch(()=>{});
   throw error;
 }finally{await browser.close();if(server)await new Promise(resolve=>server.close(resolve));}

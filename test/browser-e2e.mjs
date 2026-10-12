@@ -1,10 +1,10 @@
+import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {localServer} from '../scripts/server.mjs';
 import {readFile} from 'node:fs/promises';
 const base=process.env.E2E_URL||'http://127.0.0.1:5180';
-const root=new URL('../dist/',import.meta.url);
 const server=process.env.E2E_URL?null:localServer({directory:'test-output/rooms-5180'});
 if(server)await new Promise(resolve=>server.listen(5180,'127.0.0.1',resolve));
 const proxy=process.env.HTTPS_PROXY;
@@ -44,7 +44,7 @@ try{
     await page.goto(base);
   }
   await pages[0].locator('#entry-name').waitFor();
-  await pages[0].screenshot({path:new URL('01-home.png',output).pathname,fullPage:true});
+  await pages[0].screenshot({path:fileURLToPath(new URL('01-home.png',output)),fullPage:true});
   await pages[0].locator('#entry-name').fill(names[0]);await pages[0].locator('[name=count]').fill('3');
   await click(pages[0],'button[type=submit]');await pages[0].locator('[data-action=readyLobby]').waitFor();
   const initial=await read(pages[0]);const code=initial.code;
@@ -58,7 +58,7 @@ try{
   for(const page of pages)assert.equal(await page.locator('#app').getAttribute('data-you'),await page.evaluate(()=>JSON.parse(localStorage.getItem('forehead-session-v3')).playerId));
   await Promise.all(pages.map(p=>click(p,'[data-action=readyLobby]')));await refresh(pages[0]);
   await pages[0].locator('[data-action=startWriting]:not([disabled])').waitFor();
-  await pages[0].screenshot({path:new URL('02-lobby.png',output).pathname,fullPage:true});
+  await pages[0].screenshot({path:fileURLToPath(new URL('02-lobby.png',output)),fullPage:true});
   assert.equal((await read(pages[0])).players.length,4);checks.push('4 mobile browsers join with a six-digit code and mark ready');
   await click(pages[0],'[data-action=startWriting]');await refreshAll();
   await Promise.all(pages.map(p=>p.locator('textarea[data-card]').first().waitFor()));
@@ -71,7 +71,7 @@ try{
   await pages[0].locator('input[type=file]').first().setInputFiles({name:'test-photo.svg',mimeType:'image/svg+xml',buffer:svg});
   await pages[0].locator('.editor-photo img').waitFor();
   assert.equal(await pages[0].locator('.editor-photo img').evaluate(img=>img.complete&&img.naturalWidth>=1000),true);
-  await pages[0].screenshot({path:new URL('03-writing.png',output).pathname,fullPage:true});
+  await pages[0].screenshot({path:fileURLToPath(new URL('03-writing.png',output)),fullPage:true});
   checks.push('browser photo compression, durable server storage and authenticated rendered photo');
   await Promise.all(pages.map(p=>click(p,'[data-do=cards-ready]')));await refreshAll();
   let state=await read(pages[0]);assert.equal(state.phase,'playing');
@@ -92,7 +92,7 @@ try{
       const beforeCancel=await read(refPage);
       await refPage.locator('[data-action=correct]').click();
       await refPage.getByRole('alertdialog').waitFor();
-      await refPage.screenshot({path:new URL('07-sensitive-confirmation.png',output).pathname,fullPage:true});
+      await refPage.screenshot({path:fileURLToPath(new URL('07-sensitive-confirmation.png',output)),fullPage:true});
       assert.equal((await read(refPage)).turn.status,'running');
       await refPage.locator('[data-confirm=cancel]').click();
       assert.equal((await read(refPage)).turn.remaining,beforeCancel.turn.remaining);
@@ -103,10 +103,10 @@ try{
       assert.equal((await read(refPage)).turn.status,'running');
       checks.push('accidental correct tap opens confirmation; cancel and Escape leave score and turn unchanged');
       await guessPage.setViewportSize({width:844,height:390});
-      await guessPage.screenshot({path:new URL('04-head-landscape.png',output).pathname,fullPage:true});
+      await guessPage.screenshot({path:fileURLToPath(new URL('04-head-landscape.png',output)),fullPage:true});
       assert.ok(await guessPage.locator('h2').first().isVisible());
       await guessPage.setViewportSize({width:390,height:844});
-      await refPage.screenshot({path:new URL('05-referee.png',output).pathname,fullPage:true});
+      await refPage.screenshot({path:fileURLToPath(new URL('05-referee.png',output)),fullPage:true});
       await click(refPage,'[data-action=question]');await click(refPage,'[data-action=undoQuestion]');
       assert.equal(await refPage.getByRole('alertdialog').count(),0);
       assert.equal((await read(refPage)).turn.remaining,20);
@@ -148,7 +148,7 @@ try{
     assert.equal(new Set(authors).size,3);
   }
   checks.push('each of the four players receives exactly one card from each of the other three authors');
-  await pages[0].screenshot({path:new URL('06-scoreboard.png',output).pathname,fullPage:true});
+  await pages[0].screenshot({path:fileURLToPath(new URL('06-scoreboard.png',output)),fullPage:true});
   checks.push('12 turns; each card used exactly once; no own card dealt; scores and final scoreboard correct');
   await pages[0].locator('[data-action=reset]').click();await pages[0].getByRole('alertdialog').waitFor();
   await pages[0].locator('[data-confirm=cancel]').click();assert.equal((await read(pages[0])).phase,'finished');
@@ -171,7 +171,7 @@ try{
   process.stdout.write(JSON.stringify({passed:true,checks},null,2)+'\n');
 }catch(error){
   await writeFile(new URL('browser-results.json',output),JSON.stringify({passed:false,error:error.stack,checks,errors},null,2));
-  for(let i=0;i<pages.length;i++)await pages[i].screenshot({path:new URL(`failure-${i}.png`,output).pathname,fullPage:true}).catch(()=>{});
+  for(let i=0;i<pages.length;i++)await pages[i].screenshot({path:fileURLToPath(new URL(`failure-${i}.png`,output)),fullPage:true}).catch(()=>{});
   for(let i=0;i<pages.length;i++)console.log('UI failure details',i,await pages[i].locator('#toast').textContent().catch(()=>''),await pages[i].locator('#app').getAttribute('data-you').catch(()=>''));
   throw error;
 }finally{await browser.close();if(server)await new Promise(resolve=>server.close(resolve));}
