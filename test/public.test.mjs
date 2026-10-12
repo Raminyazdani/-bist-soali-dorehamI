@@ -9,6 +9,7 @@ import {createRoom} from '../lib/game.mjs';
 import {photoLink,verifyPhoto} from '../lib/security.mjs';
 import {gameRequest} from '../lib/http.mjs';
 import {BlobError} from '@vercel/blob';
+import {GameService} from '../lib/service.mjs';
 
 async function disk(t){
   const directory=await mkdtemp(join(tmpdir(),'forehead-public-'));t.after(()=>rm(directory,{recursive:true,force:true}));
@@ -88,6 +89,33 @@ test('large mutable JSON reads preserve an atomic strong ETag and reject stale w
   const committed=await new BlobStore({sdk:provider}).get(room.id);
   assert.equal(committed.state.cardsPerPlayer,2);assert.equal(committed.state.players[0].ready,true);assert.equal(committed.revision,2);
   assert.deepEqual(committed.state.requests,room.requests);
+});
+
+test('a provider conditional-operation conflict retries from fresh state without losing another change',async t=>{
+  const {sdk}=await disk(t);let inject=false,conflicts=0;
+  const provider={...sdk,put:async(name,value,options)=>{
+    if(inject&&name.includes('/rooms/')&&options.ifMatch){
+      inject=false;conflicts++;
+      const concurrent=new BlobStore({sdk}),id=JSON.parse(value).id,row=await concurrent.get(id);
+      assert.equal(await concurrent.cas(row,{...row.state,cardsPerPlayer:2}),true);
+      throw new BlobError('The conditional request cannot succeed due to a conflicting operation against this resource.');
+    }
+    return sdk.put(name,value,options);
+  }};
+  const created=await new GameService(new BlobStore({sdk:provider})).create({name:'رامین',cardsPerPlayer:1});
+  const requestId='conditional_conflict_ready';inject=true;
+  const result=await new GameService(new BlobStore({sdk:provider})).action({...created.credentials,action:'readyLobby',data:{ready:true},requestId});
+  assert.equal(conflicts,1);assert.equal(result.snapshot.cardsPerPlayer,2);assert.equal(result.snapshot.players[0].ready,true);
+  const store=new BlobStore({sdk:provider}),stale=await store.get(created.credentials.roomId);
+  assert.equal(stale.revision,2);assert.equal(stale.state.requests.filter(id=>id.endsWith(':'+requestId)).length,1);
+  const concurrent=new BlobStore({sdk}),fresh=await concurrent.get(stale.id);
+  assert.equal(await concurrent.cas(fresh,{...fresh.state,cardsPerPlayer:3}),true);
+  assert.equal(await store.cas(stale,{...stale.state,cardsPerPlayer:9}),false);
+  const committed=await store.get(stale.id);
+  assert.equal(committed.state.cardsPerPlayer,3);assert.equal(committed.state.players[0].ready,true);assert.equal(committed.revision,3);
+  const unrelatedError=new BlobError('A different provider validation error.');
+  const unrelated=new BlobStore({sdk:{...sdk,put:async()=>{throw unrelatedError;}}}),row=await unrelated.get(stale.id);
+  await assert.rejects(()=>unrelated.cas(row,{...row.state,cardsPerPlayer:4}),error=>error===unrelatedError);
 });
 
 test('unexpected backend diagnostics identify SDK failures without exposing messages or unsafe fields',async t=>{
