@@ -88,23 +88,24 @@ test('service kick removes the old actor and prevents that actor changing the ro
 
 test('service settings persist through retries and concurrent partial changes without lost fields',async()=>{
   const store=new TestStore(),service=new GameService(store),intent={name:'مدیر',settings:{questions:30},...identity()};
-  const a=await service.create(intent),again=await service.create({...intent,settings:{questions:10}});
-  assert.equal(again.snapshot.settings.questions,30);
+  const a=await service.create(intent),again=await service.create({...intent,settings:{questions:10,remotePlay:true}});
+  assert.equal(again.snapshot.settings.questions,30);assert.equal(again.snapshot.settings.remotePlay,false);
   const b=await service.join({name:'دوست',code:a.credentials.code,...identity()});
   for(const p of [a,b])await command(service,p.credentials,'readyLobby',{ready:true});
   await assert.rejects(command(service,b.credentials,'setSettings',{settings:{questions:10}}),{code:'HOST_ONLY'});
   await Promise.all([
     command(service,a.credentials,'setSettings',{settings:{questions:10},cardsPerPlayer:2}),
-    command(service,a.credentials,'setSettings',{settings:{autoPause:true}})
+    command(service,a.credentials,'setSettings',{settings:{autoPause:true}}),
+    command(service,a.credentials,'setSettings',{settings:{remotePlay:true}})
   ]);
   const current=await service.state(auth(a.credentials));
-  assert.deepEqual(current.snapshot.settings,{questions:10,autoPause:true,sharedControls:true});
+  assert.deepEqual(current.snapshot.settings,{questions:10,autoPause:true,sharedControls:true,remotePlay:true});
   assert.equal(current.snapshot.cardsPerPlayer,2);assert.ok(current.snapshot.players.every(p=>!p.ready));
   const before=await store.get(a.credentials.roomId);
   const request={...auth(a.credentials),action:'setSettings',data:{settings:{sharedControls:false}},requestId:'same_settings_service_request'};
   await Promise.all([service.action(request),service.action(request)]);
   const after=await store.get(a.credentials.roomId);assert.equal(after.revision,before.revision+1);
-  assert.deepEqual(after.state.settings,{questions:10,autoPause:true,sharedControls:false});
+  assert.deepEqual(after.state.settings,{questions:10,autoPause:true,sharedControls:false,remotePlay:true});
 });
 
 test('service permits independent referee takeover from fresh confirmed absence',async()=>{
