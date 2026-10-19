@@ -1,4 +1,14 @@
-# Feature-release verification — 2026-10-12 (Europe/Berlin)
+# Remote-play release — 2026-10-19
+
+The remote-play release continues the same free project. Candidate `2bfe3abb9c99851193f0439473a973db3ace5b5f`, [PR 4](https://github.com/Raminyazdani/-bist-soali-dorehamI/pull/4), normal merge `b9d627697a9944e09336a6ff41d5dd5cbe6bd295` at 21:30:41 Berlin; zero source diff. [Candidate CI 39310847969](https://github.com/Raminyazdani/-bist-soali-dorehamI/actions/runs/39310847969) and [master CI 39311596367](https://github.com/Raminyazdani/-bist-soali-dorehamI/actions/runs/39311596367) passed. Tested stable READY deployment `dpl_HFrqU1rZEnXyFBQSgwMHFS7kFE2j` and primary alias were independently checked.
+
+Units 127 total/126 PASS/one explicit live skip; seven remote tests PASS with executed pre-fix red evidence; build PASS. Exact native six suites: 46 checks PASS, zero browser errors. Actual Neon 43 PASS/zero owned fixtures; actual Preview 28 checks plus eight privacy observations PASS, zero errors/log diagnostics. Production: all six PASS, 44 hosted checks plus eight privacy observations, all exit 0/zero browser errors, completed 21:37:35 Berlin; successful exact-deployment logs 19:31:26–19:37:44 UTC returned zero records/diagnostics. Full exact-source tables, remote server/photo contract, log intervals, scope limits and failed attempts are in [docs/REMOTE_VERIFICATION.md](docs/REMOTE_VERIFICATION.md). No paid upgrade/trial/payment or new provider/schema/env binding; no new authenticated cron run is claimed.
+
+---
+
+The material below records earlier releases and failed attempts for their stated 12 October source/deployment; it does not claim remote-play verification or today's live metadata.
+
+# Historical feature release — 2026-10-12 (Europe/Berlin)
 
 Status: complete. All five stable Production suites passed: 34 strict hosted checks plus six privacy boundaries, zero browser errors, and zero error records/diagnostics in the successful complete deployment-log query. The same app/repository/project continues under the latest direct human feature authorization. Provider terms were already accepted; no payment, paid trial or upgrade was made.
 
