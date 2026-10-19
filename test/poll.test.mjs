@@ -194,7 +194,7 @@ test('legacy compact polling still auto-pauses and a settings revision change re
   const {row,data}=gameFixture();delete row.state.settings;
   const store=new PollStore(row),service=new GameService(store,{clock:()=>NOW});store.people[row.state.turn.playerId]=NOW-20001;
   const result=await service.state(data);
-  assert.equal(result.snapshot.turn.status,'paused');assert.deepEqual(result.snapshot.settings,{questions:20,autoPause:true,sharedControls:false});
+  assert.equal(result.snapshot.turn.status,'paused');assert.deepEqual(result.snapshot.settings,{questions:20,autoPause:true,sharedControls:false,remotePlay:false});
   const fresh=gameFixture();fresh.row.revision=42;fresh.row.state.settings={questions:30,autoPause:false,sharedControls:true};
   const changed=await new GameService(new PollStore(fresh.row,fresh.row),{clock:()=>NOW}).state(fresh.data);
   assert.equal(changed.unchanged,undefined);assert.equal(changed.snapshot.settings.questions,30);assert.equal(changed.snapshot.revision,42);

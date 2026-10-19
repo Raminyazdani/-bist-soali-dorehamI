@@ -32,18 +32,18 @@ const spectator=room=>room.players.find(p=>![room.hostId,room.turn.playerId,room
 
 test('new rooms use party defaults while legacy rooms retain their original settings',()=>{
   const room=lobby(),other=lobby();
-  assert.deepEqual(roomSettings(room),{questions:20,autoPause:false,sharedControls:true});
+  assert.deepEqual(roomSettings(room),{questions:20,autoPause:false,sharedControls:true,remotePlay:false});
   assert.deepEqual(snapshot(room,room.hostId).settings,roomSettings(room));
   room.settings.questions=10;assert.equal(other.settings.questions,20);
   delete room.settings;
-  assert.deepEqual(snapshot(room,room.hostId).settings,{questions:20,autoPause:true,sharedControls:false});
+  assert.deepEqual(snapshot(room,room.hostId).settings,{questions:20,autoPause:true,sharedControls:false,remotePlay:false});
   assert.equal(Object.hasOwn(room,'settings'),false,'reading legacy settings must not migrate the room');
 });
 
 test('question counts accept only integers5 through30 and settings booleans are strict',()=>{
   for(let questions=5;questions<=30;questions++)assert.equal(lobby({questions}).settings.questions,questions);
   for(const questions of [4,31,5.5,'10','۱۰',true,null,Number.NaN,Infinity])assert.throws(()=>lobby({questions}),{code:'BAD_SETTINGS'});
-  for(const key of ['autoPause','sharedControls'])for(const value of [0,1,'false','true',null,undefined])assert.throws(()=>lobby({[key]:value}),{code:'BAD_SETTINGS'});
+  for(const key of ['autoPause','sharedControls','remotePlay'])for(const value of [0,1,'false','true',null,undefined])assert.throws(()=>lobby({[key]:value}),{code:'BAD_SETTINGS'});
   for(const settings of [null,[],false,'settings',{unknown:true}])assert.throws(()=>createRoom({name:'مدیر',settings}),{code:'BAD_SETTINGS'});
 });
 
@@ -55,7 +55,7 @@ test('host settings changes are atomic, lobby-only, readiness-resetting and retr
   assert.equal(JSON.stringify(room),original);
   const context={now:BASE,requestId:'same_settings_request'};
   const saved=applyAction(room,room.hostId,'setSettings',{settings:{questions:10},cardsPerPlayer:2},context).room;
-  assert.deepEqual(saved.settings,{questions:10,autoPause:false,sharedControls:true});
+  assert.deepEqual(saved.settings,{questions:10,autoPause:false,sharedControls:true,remotePlay:false});
   assert.equal(saved.cardsPerPlayer,2);assert.ok(saved.players.every(p=>!p.ready));
   assert.equal(applyAction(saved,saved.hostId,'setSettings',{settings:{questions:30}},context).changed,false);
   room=action(saved,saved.hostId,'setCount',{count:3});assert.equal(room.settings.questions,10);assert.equal(room.cardsPerPlayer,3);

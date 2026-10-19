@@ -49,7 +49,7 @@ try{
   assert.equal(await creator.locator('[name=autoPause]').isChecked(),false);
   assert.equal(await creator.locator('[name=sharedControls]').isChecked(),true);
   await click(creator,'button[type=submit]');
-  const first=await read(creator);assert.deepEqual(first.settings,{questions:10,autoPause:false,sharedControls:true});
+  const first=await read(creator);assert.deepEqual(first.settings,{questions:10,autoPause:false,sharedControls:true,remotePlay:false});
   for(const [page,name]of[[guest,'دوست یک'],[third,'دوست دو']]){
     await page.goto(base+'/?room='+first.code);await page.locator('#entry-name').fill(name);await click(page,'button[type=submit]');
   }
