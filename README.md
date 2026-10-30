@@ -83,3 +83,26 @@ node scripts/init-postgres.mjs .env.neon.preview.local
 محدودیت ساخت/ورود/آپلود و ثبت تکراری درخواست حفظ شده است. پاسخِ وضعیتِ بدون تغییر سبک‌تر است؛ تغییر بازی و تمدید لینک عکس همچنان وضعیت کامل را می‌خوانند. سهمیهٔ رایگان محدود است: ۱ گیگابایت ذخیره‌سازی، ۱۰۰ CU-hour محاسبه و ۵ گیگابایت خروجی داده؛ ظرفیت نامحدود وعده داده نمی‌شود. هیچ پرداخت، trial یا ارتقای Vercel انجام نشده است.
 
 دادهٔ Blob قبلی دست‌نخورده و فعلاً معلق است؛ لابی‌های آن یا نسخهٔ قدیمی گوشی‌میزبان منتقل‌شده اعلام نمی‌شوند. بازیابی متنِ نسخهٔ قبلی فقط سازگاری کش متنِ همین لابی Neon است. لابی Neon موجود قواعد خودش را حفظ می‌کند؛ برای پیش‌فرض‌های تازه، لابی جدید بسازید. ادامهٔ اجرایی در [docs/LOCAL_CONTINUATION.md](docs/LOCAL_CONTINUATION.md) و [STATUS.md](STATUS.md) ثبت شده؛ انتخاب‌های تاریخی [docs/SUPERPROMPT.md](docs/SUPERPROMPT.md) با درخواست تازه جایگزین شده‌اند.
+
+## Source publication and safe local checks
+
+Keep runtime credentials and real user data outside Git, including private
+repositories; read [SECURITY.md](SECURITY.md). Review staged paths before publishing.
+The root [LICENSE](LICENSE) reserves rights in original material to Raminyazdani;
+third-party dependencies and assets retain their respective licenses.
+
+```sh
+npm ci --ignore-scripts --no-audit
+npm audit --json
+npm test
+npm run build
+```
+
+Use a clean local environment with no production credentials. These commands
+cover dependency, unit and build checks; they do not prove hosted/provider,
+physical-device or production acceptance. Keep generated output and test artifacts
+out of source commits. Never publish real rooms, sessions, photos, ledgers, exports,
+backups, cookies or database files. Historical release evidence above remains
+historical and is not replaced by this source-publication check.
+
+Leave `POSTGRES_LIVE_TESTS` unset for routine unit tests. Live database checks are a separate explicitly authorized workflow.
