@@ -20,5 +20,10 @@
   "devDependencies": {
     "playwright": "^1.56.1",
     "vite": "8.3.4"
+  },
+  "overrides": {
+    "@vercel/cli-config": {
+      "zod": "^4.6.6"
+    }
   }
 }
